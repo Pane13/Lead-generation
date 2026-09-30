@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a"><title>Diamondweb Leads</title>
+<style>
+[hidden]{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;font:15px system-ui,sans-serif;color:#1f2937;background:#f3f4f6}
+button,input,select,textarea{font:inherit}
+#app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+#top{background:#0f172a;padding:8px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.row{display:flex;gap:6px;align-items:center}
+input[type=text],select,textarea{padding:10px;border:1px solid #d1d5db;border-radius:8px;width:100%;background:#fff}
+.btn{padding:10px 14px;border:0;border-radius:8px;background:#2563eb;color:#fff;white-space:nowrap}
+.btn.g{background:#e5e7eb;color:#111}.btn:disabled{opacity:.5}
+#views{flex:1;position:relative;min-height:0}
+.view{position:absolute;inset:0;overflow:auto;display:none}
+.view.on{display:block}
+#map{width:100%;height:100%}
+#fab{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;box-shadow:0 2px 8px #0006;border-radius:24px;padding:13px 22px;font-weight:600}
+.sticky{position:sticky;top:0;background:#fff;padding:8px;border-bottom:1px solid #e5e7eb;z-index:2;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{padding:6px 12px;border-radius:16px;background:#e5e7eb;border:0;font-size:13px}.chip.on{background:#2563eb;color:#fff}
+.item{background:#fff;padding:10px 12px;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:center}
+.item .t{flex:1;min-width:0}.item b{display:block}.item small{color:#6b7280;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbtn{flex:none;width:48px;height:48px;border-radius:24px;background:#16a34a;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:22px}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;color:#fff;margin-left:4px;vertical-align:middle}
+nav{display:flex;background:#fff;border-top:1px solid #e5e7eb;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;padding:9px 0;border:0;background:none;font-size:12px;color:#6b7280}
+nav button.on{color:#2563eb;font-weight:600}nav span{display:block;font-size:20px}
+#panel{position:fixed;left:0;right:0;bottom:0;max-height:78vh;overflow:auto;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 20px #0006;padding:14px 14px calc(14px + env(safe-area-inset-bottom));z-index:20;display:none}
+.call{display:block;text-align:center;background:#16a34a;color:#fff;text-decoration:none;padding:15px;border-radius:10px;font-size:18px;font-weight:600;margin:10px 0}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.st button{padding:11px;border:2px solid transparent;border-radius:8px;background:#f3f4f6}.st button.on{border-color:#111}
+.warn{background:#fef3c7;padding:8px;border-radius:8px;font-size:13px;margin:8px 0}
+.muted{color:#6b7280;font-size:13px}.pad{padding:14px}
+#setup{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:99;padding:16px}
+#setup div{background:#fff;padding:20px;border-radius:12px;width:100%;max-width:440px}
+</style></head><body>
+<div id="setup" hidden><div>
+<h3 style="margin-top:0">Configurazione Google Maps</h3>
+<p class="muted">Incolla una chiave Google Cloud con <b>Maps JavaScript API</b> e <b>Places API (New)</b> abilitate. Resta salvata solo su questo dispositivo.</p>
+<input type="text" id="key" placeholder="AIza..."><p><button class="btn" onclick="saveKey()">Salva e avvia</button></p></div></div>
+
+<div id="app">
+ <div id="top">
+  <div class="row"><input type="text" id="q" placeholder="Cosa cerchi? es. parrucchieri" onkeydown="if(event.key=='Enter')search()"><button class="btn" onclick="search()">🔍</button></div>
+  <div class="row"><input type="text" id="go" placeholder="Vai a… (città, zona)" onkeydown="if(event.key=='Enter')goTo()"><button class="btn g" onclick="goTo()">Vai</button><button class="btn g" onclick="locate()">📍</button><button class="btn g" onclick="resetKey()">🔑</button></div>
+  <div id="msg" style="color:#fbbf24;font-size:12px"></div>
+ </div>
+ <div id="views">
+  <div class="view on" id="v-map"><div id="map"></div><button class="btn" id="fab" onclick="search()">Cerca in quest'area</button></div>
+  <div class="view" id="v-list">
+   <div class="sticky"><button class="chip on" data-v="new" onclick="setLv('new',this)">Da chiamare</button>
+    <button class="chip" data-v="called" onclick="setLv('called',this)">Chiamati</button>
+    <button class="chip" data-v="all" onclick="setLv('all',this)">Tutti</button>
+    <button class="chip on" id="cPhone" onclick="this.classList.toggle('on');render()">📞 Con tel.</button>
+    <button class="chip" onclick="search(true)">🔎 Approfondisci</button></div>
+   <div id="list"></div></div>
+  <div class="view" id="v-reg">
+   <div class="sticky"><select id="regSt" onchange="renderReg()" style="flex:1"></select><button class="btn g" onclick="exportCsv()">⬇ CSV</button></div>
+   <div id="reg"></div></div>
+ </div>
+ <nav>
+  <button class="on" data-t="map" onclick="tab('map')"><span>🗺️</span>Mappa</button>
+  <button data-t="list" onclick="tab('list')"><span>📋</span><i id="cnt">Lista</i></button>
+  <button data-t="reg" onclick="tab('reg')"><span>📒</span><i id="rcnt">Registro</i></button>
+ </nav>
+</div>
+<div id="panel"></div>
+
+<script>
+const ST={called:['Chiamato','#0ea5e9'],nr:['Non risponde','#6b7280'],cb:['Da richiamare','#f59e0b'],int:['Interessato','#16a34a'],trat:['In trattativa','#7c3aed'],app:['Appuntamento','#db2777'],no:['Non interessato','#dc2626']};
+let map,results=[],markers={},lv='new',pending=null,curId=null;
+let db=JSON.parse(localStorage.getItem('dw_leads')||'{}');
+const save=()=>localStorage.setItem('dw_leads',JSON.stringify(db));
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+$('regSt').innerHTML='<option value="">Tutti gli stati</option>'+Object.entries(ST).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('');
+
+if(localStorage.gmkey)loadMaps(localStorage.gmkey);else $('setup').hidden=false;
+function msg(t){$('msg').textContent=t}
+function resetKey(){if(confirm('Cambiare la chiave API?')){localStorage.removeItem('gmkey');location.reload()}}
+window.addEventListener('error',e=>msg('Errore: '+e.message));
+window.addEventListener('unhandledrejection',e=>msg('Errore: '+(e.reason&&e.reason.message||e.reason)));
+function saveKey(){const k=$('key').value.trim().replace(/["'\s]/g,'');if(!k)return;localStorage.gmkey=k;$('setup').hidden=true;loadMaps(k)}
+function loadMaps(k){msg('Caricamento mappa…');const s=document.createElement('script');
+ s.src=`https://maps.googleapis.com/maps/api/js?key=${k}&v=weekly&loading=async&callback=initMap&language=it`;
+ s.onerror=()=>alert('Impossibile caricare Google Maps');document.head.appendChild(s)}
+window.gm_authFailure=()=>{msg('Chiave non valida, scaduta o API non abilitate.');alert('Chiave non valida, scaduta o API non abilitate.');localStorage.removeItem('gmkey');$('setup').hidden=false};
+
+async function initMap(){
+ const {Map}=await google.maps.importLibrary('maps');await google.maps.importLibrary('places');
+ map=new Map($('map'),{center:{lat:45.4642,lng:9.19},zoom:15,mapTypeControl:false,streetViewControl:false,fullscreenControl:false,gestureHandling:'greedy'});
+ // clic su un luogo di Google Maps (icone/POI) -> scheda con chiamata
+ map.addListener('click',async e=>{
+  if(!e.placeId)return closePanel();
+  e.stop();
+  try{const {Place}=await google.maps.importLibrary('places');
+   const p=new Place({id:e.placeId});await p.fetchFields({fields:FIELDS});
+   const l=toLead(p,'');if(!results.find(r=>r.id===l.id))results.unshift(l);render();openPanel(l.id)}
+  catch(err){alert('Errore: '+err.message)}
+ });
+ locate(true);render();msg('✓ Mappa pronta. Scrivi cosa cerchi e premi «Cerca».');
+}
+function locate(silent){navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>{map.setCenter({lat:p.coords.latitude,lng:p.coords.longitude});map.setZoom(16)},()=>{if(!silent)alert('Posizione non disponibile')},{enableHighAccuracy:true,timeout:8000})}
+async function goTo(){
+ const q=$('go').value.trim();if(!q)return;
+ const {Place}=await google.maps.importLibrary('places');
+ const {places}=await Place.searchByText({textQuery:q,fields:['location','viewport'],maxResultCount:1,language:'it'});
+ if(places[0]){places[0].viewport?map.fitBounds(places[0].viewport):map.setCenter(places[0].location);tab('map')}
+}
+const FIELDS=['id','displayName','formattedAddress','location','nationalPhoneNumber','internationalPhoneNumber','websiteURI','primaryTypeDisplayName','businessStatus'];
+const toLead=(p,q)=>({id:p.id,name:p.displayName,addr:p.formattedAddress||'',phone:p.nationalPhoneNumber||p.internationalPhoneNumber||'',web:p.websiteURI||'',
+ rating:p.rating,n:p.userRatingCount,kind:p.primaryTypeDisplayName||q||'',lat:p.location.lat(),lng:p.location.lng()});
+
+async function search(deep){
+ const q=$('q').value.trim();if(!q)return $('q').focus();
+ const n=deep?3:1;if(deep&&!confirm('Ricerca approfondita: 9 richieste a Google (fino a 180 risultati). Continuare?'))return;
+ const b=map.getBounds(),ne=b.getNorthEast(),sw=b.getSouthWest(),N=ne.lat(),S=sw.lat(),E=ne.lng(),W=sw.lng();
+ const dl=(N-S)/n,dg=(E-W)/n,boxes=[];
+ for(let i=0;i<n;i++)for(let j=0;j<n;j++)boxes.push(new google.maps.LatLngBounds({lat:S+i*dl,lng:W+j*dg},{lat:S+(i+1)*dl,lng:W+(j+1)*dg}));
+ $('fab').disabled=true;$('fab').textContent='Ricerca…';
+ try{
+  const {Place}=await google.maps.importLibrary('places');
+  const out=await Promise.allSettled(boxes.map(bx=>Place.searchByText({textQuery:q,fields:FIELDS,locationRestriction:bx,maxResultCount:20,language:'it'})));
+  const seen={};results=[];
+  out.forEach(o=>o.status==='fulfilled'&&o.value.places.forEach(p=>{if(p.businessStatus==='CLOSED_PERMANENTLY'||seen[p.id])return;seen[p.id]=1;results.push(toLead(p,q))}));
+  if(!results.length&&out[0].status==='rejected')throw out[0].reason;
+  render();if(deep)tab('list')
+ }catch(e){msg('Errore ricerca: '+e.message);alert('Errore ricerca: '+e.message)}
+ $('fab').disabled=false;$('fab').textContent="Cerca in quest'area";
+ if(!results.length)msg('Nessun risultato in quest\'area: zooma/sposta la mappa o cambia ricerca.');else msg('✓ '+results.length+' risultati');
+}
+function tab(t){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+t));
+ document.querySelectorAll('nav [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function setLv(v,el){lv=v;document.querySelectorAll('[data-v]').forEach(c=>c.classList.toggle('on',c===el));render()}
+const tel=r=>r.phone.replace(/[^\d+]/g,'');
+function visible(){return results.filter(r=>{
+ if($('cPhone').classList.contains('on')&&!r.phone)return false;
+ return lv==='all'||(lv==='new'?!db[r.id]:!!db[r.id])})}
+const badge=id=>db[id]&&db[id].st?`<span class="tag" style="background:${ST[db[id].st][1]}">${ST[db[id].st][0]}</span>`:'';
+function row(r,reg){return `<div class="item" onclick="openPanel('${r.id}')"><div class="t"><b>${esc(r.name)}${badge(r.id)}</b>
+ <small>${esc(r.kind)}${r.addr?' · '+esc(r.addr):''}</small>
+ <small>${r.phone?'📞 '+esc(r.phone):'nessun telefono'}${r.rating?' · ⭐'+r.rating:''}${db[r.id]&&db[r.id].notes?' · 📝 '+esc(db[r.id].notes):''}</small></div>
+ ${r.phone?`<a class="cbtn" href="tel:${tel(r)}" onclick="event.stopPropagation();called('${r.id}')">📞</a>`:''}</div>`}
+function render(){
+ if(!map)return;const vis=visible();
+ $('cnt').textContent=`Lista (${vis.length})`;
+ $('list').innerHTML=vis.map(r=>row(r)).join('')||'<p class="muted pad">Nessun contatto. Sposta la mappa, scrivi cosa cerchi (es. «parrucchieri») e premi «Cerca in quest\'area».</p>';
+ Object.values(markers).forEach(m=>m.setMap(null));markers={};
+ vis.forEach(r=>{const s=db[r.id]&&db[r.id].st;
+  const m=new google.maps.Marker({map,position:{lat:r.lat,lng:r.lng},title:r.name,
+   icon:{path:google.maps.SymbolPath.CIRCLE,scale:9,fillColor:s?ST[s][1]:'#2563eb',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}});
+  m.addListener('click',()=>openPanel(r.id));markers[r.id]=m});
+ renderReg();
+}
+function renderReg(){
+ const f=$('regSt').value,all=Object.values(db).sort((a,b)=>(b.last||0)-(a.last||0));
+ $('rcnt').textContent=`Registro (${all.length})`;
+ $('reg').innerHTML=all.filter(d=>!f||d.st===f).map(d=>row(d,1)).join('')||'<p class="muted pad">Nessuna azienda chiamata finora.</p>';
+}
+const lead=id=>results.find(r=>r.id===id)||db[id];
+function ensure(id){const r=lead(id);db[id]=Object.assign({},db[id],{id,name:r.name,phone:r.phone,web:r.web,addr:r.addr,kind:r.kind,lat:r.lat,lng:r.lng});return db[id]}
+function called(id){const d=ensure(id);d.calls=(d.calls||0)+1;d.last=Date.now();if(!d.st)d.st='called';save();pending=id;setTimeout(render,300)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&pending){const id=pending;pending=null;render();openPanel(id)}});
+function openPanel(id){
+ curId=id;const r=lead(id),d=db[id]||{};
+ $('panel').style.display='block';
+ $('panel').innerHTML=`<div class="row"><b style="flex:1;font-size:17px">${esc(r.name)}</b><button class="btn g" onclick="closePanel()">✕</button></div>
+ <div class="muted">${esc(r.kind)}${r.addr?' · '+esc(r.addr):''}${r.rating?' · ⭐'+r.rating+' ('+r.n+')':''}</div>
+ ${d.calls?`<div class="warn">⚠ Già chiamato ${d.calls} volt${d.calls>1?'e':'a'} – ultima: ${new Date(d.last).toLocaleString('it-IT')}</div>`:''}
+ ${r.phone?`<a class="call" href="tel:${tel(r)}" onclick="called('${id}')">📞 Chiama ${esc(r.phone)}</a>`:'<div class="warn">Nessun telefono disponibile</div>'}
+ <div class="muted">Stato della trattativa:</div>
+ <div class="st">${Object.entries(ST).map(([k,[l,c]])=>`<button class="${d.st===k?'on':''}" style="background:${d.st===k?c+'33':''}" onclick="setSt('${id}','${k}')">${l}</button>`).join('')}</div>
+ <textarea id="nt" rows="3" placeholder="Note sulla trattativa (es. referente, richiamare giovedì, interessato a SEO…)">${esc(d.notes||'')}</textarea>
+ <div class="row" style="margin-top:8px"><button class="btn" style="flex:1" onclick="nextLead()">Salva e prossimo ▶</button></div>
+ <p class="muted">${r.web?`<a href="${esc(r.web)}" target="_blank">🌐 Sito</a> · `:''}<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${id}" target="_blank">🗺️ Apri in Google Maps</a></p>`;
+}
+function saveNotes(){const t=$('nt');if(t&&curId&&(t.value||(db[curId]&&db[curId].notes))){const d=ensure(curId);d.notes=t.value;if(!d.st)d.st='called';save()}}
+function setSt(id,s){saveNotes();const d=ensure(id);d.st=s;d.last=Date.now();save();render();openPanel(id)}
+function closePanel(){saveNotes();$('panel').style.display='none';curId=null;render()}
+function nextLead(){
+ saveNotes();render();
+ const nx=visible().filter(r=>!db[r.id]&&r.phone)[0];
+ if(!nx){closePanel();return alert('Nessun altro contatto da chiamare in questa ricerca.')}
+ map.panTo({lat:nx.lat,lng:nx.lng});openPanel(nx.id);
+}
+function exportCsv(){
+ const rows=[['Nome','Tipo','Telefono','Sito','Indirizzo','Stato','Chiamate','Ultima chiamata','Note']];
+ Object.values(db).forEach(d=>rows.push([d.name,d.kind,d.phone,d.web,d.addr,d.st?ST[d.st][0]:'',d.calls||0,d.last?new Date(d.last).toLocaleString('it-IT'):'',d.notes||'']));
+ const csv=rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(';')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='lead-diamondweb.csv';a.click();
+}
+</script></body></html>
