@@ -882,7 +882,7 @@ function renderHome(){const el=$('home');if(!el)return;const H=homeData(),h=new 
  <div class="hcard"><h3>Imbuto degli ultimi 30 giorni</h3>${H.fun.map(([l,v],i)=>`<div class="fun"><span>${l}</span><div class="bar"><i style="width:${Math.round(100*v/f0)}%;${i>=2?'background:#db2777':''}${i===4?';background:#065f46':''}"></i></div><b style="text-align:right">${v}${i?` <small class="muted">${H.fun[i-1][1]?Math.round(100*v/H.fun[i-1][1])+'%':''}</small>`:''}</b></div>`).join('')}
  <div class="muted" style="font-size:12px">La percentuale è la conversione dal passaggio precedente. Le risposte si contano dal momento in cui l'app ha iniziato a registrarle.</div></div>`}
 // ===== Versione e novità =====
-const APPV='3.8';
+const APPV='3.9';
 const NEWS=['Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
 function showNews(){$('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">✨ Novità della versione ${APPV}</b><button class="btn g" onclick="closeNc()">✕</button></div><div class="pad">${NEWS.map(x=>'<p style="margin:8px 0">• '+esc(x)+'</p>').join('')}</div>`;if($('nc').hidden){$('nc').hidden=false;pushSheet()}}
 setTimeout(()=>{try{const v=localStorage.getItem('dw_ver');if(v!==APPV){localStorage.setItem('dw_ver',APPV);if(v||Object.keys(db).length)toast('✨ App aggiornata alla versione '+APPV+': tocca per vedere le novità',showNews)}}catch(e){}},2500);
@@ -1023,9 +1023,9 @@ function kpParse(txt){txt=String(txt||'').replace(/^﻿/,'');const L=txt.split(/
  const cells=l=>{if(sep==='\t')return l.split('\t').map(c=>c.replace(/^"|"$/g,'').trim());const o=[];let c='',q=0;for(const ch of l){if(ch==='"'){q=!q;continue}if(ch===sep&&!q){o.push(c.trim());c='';continue}c+=ch}o.push(c.trim());return o};
  let hi=L.findIndex(l=>/keyword|parola chiave|parole chiave/i.test(l)&&/(month|mensil|ricerche|searches)/i.test(l)),H=hi>=0?cells(L[hi]).map(x=>x.toLowerCase()):null;
  const col=re=>H?H.findIndex(h=>re.test(h)):-1;let ck=H?col(/^(keyword|parola chiave|parole chiave)/):0,cv=H?col(/(avg\.? monthly searches|media (delle )?ricerche mensili|ricerche mensili medie|ricerche mensili)/):1;
- const cc=col(/^(competition|concorrenza)$/),cl=col(/(low range|intervallo basso|basso)/),ch=col(/(high range|intervallo alto|alto)/);if(ck<0)ck=0;if(cv<0)cv=1;
+ const cc=col(/^(competition|concorrenza)$/),cl=col(/(low range|intervallo basso|basso)/),ch=col(/(high range|intervallo alto|alto)/),cm=H?H.map((h,i)=>/^(searches|ricerche)\s*:/.test(h)?i:-1).filter(i=>i>=0):[];if(ck<0)ck=0;if(cv<0)cv=1;
  let n=0;L.slice(hi>=0?hi+1:0).forEach(l=>{const c=cells(l);const k=kpN(c[ck]);if(!k||k.length<2||/^(keyword|parola)/.test(k))return;const vo=kpVol(c[cv]);if(!vo)return;
-  const cx=window._kpCtx||(()=>{try{return JSON.parse(localStorage.getItem('dw_kpctx')||'null')}catch(e){return null}})();KPV[k]={c:cx&&cx.c||'',v:vo.v,lo:vo.lo,hi:vo.hi,raw:c[cv],comp:cc>=0?c[cc]:'',cl:cl>=0?kpNum(c[cl]):null,ch:ch>=0?kpNum(c[ch]):null,t:Date.now()};n++});
+  const cx=window._kpCtx||(()=>{try{return JSON.parse(localStorage.getItem('dw_kpctx')||'null')}catch(e){return null}})();const ms=cm.map(i=>c[i]||'').join(','),sig=/[1-9]/.test(ms)?vo.v+'|'+ms+'|'+(cl>=0?c[cl]:'')+'|'+(ch>=0?c[ch]:''):'';KPV[k]={sig,c:cx&&cx.c||'',v:vo.v,lo:vo.lo,hi:vo.hi,raw:c[cv],comp:cc>=0?c[cc]:'',cl:cl>=0?kpNum(c[cl]):null,ch:ch>=0?kpNum(c[ch]):null,t:Date.now()};n++});
  if(n){kpSave();render();if(curId)openPanel(curId)}return n}
 async function kpFile(f){if(!f)return;const b=new Uint8Array(await f.arrayBuffer());let t;
  if(b[0]===0xFF&&b[1]===0xFE)t=new TextDecoder('utf-16le').decode(b.subarray(2));else if(b[0]===0xFE&&b[1]===0xFF)t=new TextDecoder('utf-16be').decode(b.subarray(2));else t=new TextDecoder('utf-8').decode(b);
@@ -1050,19 +1050,26 @@ async function kpPasteUi(){const v=await uiAsk({title:'Incolla da Keyword Planne
 // file ricevuto con «Condividi → DW Leads» (app installata)
 (async()=>{try{if(!/[?&]kp=1/.test(location.search)||!window.caches)return;const c=await caches.open('dw-share'),r=await c.match('./shared-kp');if(r){await kpFile(await r.blob());await c.delete('./shared-kp')}history.replaceState(null,'',location.pathname)}catch(e){}})();
 
+
+// nomi di aziende già viste: le ricerche col nome di un'azienda (es. «edilservice milano») sono di chi cerca quella ditta, non clienti nuovi
+let _BR=null,_BRn=-1;function kpBrands(){const n=Object.keys(PC).length+results.length+Object.keys(db).length;if(_BR&&_BRn===n)return _BR;_BR=new Set();_BRn=n;
+ Object.values(PC).concat(results,Object.values(db)).forEach(x=>{if(x&&x.name){const k=nkey2(x.name);if(k.length>=5)_BR.add(k)}});return _BR}
 // le 5 ricerche più cercate tra quelle importate da Keyword Planner e pertinenti al cliente (settore + zona)
 function kpPick(r,base,N){N=N||5;const E=Object.entries(KPV);if(!E.length||!r)return base;
  const sx=sectorOf(r),c=fold(cityOf(r)||''),cap=fold(CAPO[provOf(r)]||''),others=Object.keys(CAPOLL).filter(x=>x!==cap&&x!==c);
  const stop=/^(vicino|miglior|migliore|prezzi|prezzo|costo|costi|urgente|zona|online|economico)$/,words=new Set();
  [...base,r.kind||'',sx?sx.q:'',...(sx&&sx.kw?sx.kw:[])].forEach(x=>kpN(String(x).replace('{c}','')).split(' ').forEach(w=>{if(w.length>=4&&w!==c&&w!==cap&&!stop.test(w))words.add(w.slice(0,6))}));
- const rel=E.filter(([k,x])=>{if(!(x.v>0))return false;if(others.some(o=>new RegExp('\\b'+o+'\\b').test(k)))return false;if(x.c&&c&&x.c!==c&&!k.includes(c))return false;
+ const BR=kpBrands();const rel=E.filter(([k,x])=>{if(!(x.v>0))return false;if(/\b(srl|spa|snc|sas|srls)\b/.test(k))return false;{const core=k.split(' ').filter(w=>w!==c&&w!==cap&&!/^(a|di|in)$/.test(w)).join('');if(core.length>=5&&BR.has(core))return false}if(others.some(o=>new RegExp('\\b'+o+'\\b').test(k)))return false;if(x.c&&c&&x.c!==c&&!k.includes(c))return false;
   return (sx&&sx.re.test(k))||k.split(' ').some(w=>w.length>=4&&words.has(w.slice(0,6)))});
  if(!rel.length)return base;rel.sort((a,b)=>b[1].v-a[1].v);
  // scarta le ricerche con meno del 5% delle ricerche della più cercata (invendibili)
  const vmin=rel[0][1].v*0.05;rel.splice(0,rel.length,...rel.filter(([k,x])=>x.v>=vmin));
+ // varianti della stessa ricerca («imprese edili milano» = «milano imprese edili» = «impresa edile a milano»): ne tengo una sola
+ const bag=k=>k.split(' ').filter(w=>!/^(a|di|in|da|per|e|il|la|le|lo|gli|i|del|della|dei|delle)$/.test(w)).map(w=>w.replace(/(i|e|a|o)$/,'')).sort().join(' ');
+ {const seen=new Set();rel.splice(0,rel.length,...rel.filter(([k,x])=>{const a=x.sig?'s:'+x.sig:'',b='b:'+bag(k);if((a&&seen.has(a))||seen.has(b))return false;if(a)seen.add(a);seen.add(b);return true}))}
  const nk=x=>x.toLowerCase().split(' ').filter(w=>!/^(per|di|e|a|da|in|il|la|lo|le|gli|i|un|una|del|della|dei)$/.test(w)).join(' '),out=[];
  rel.forEach(([k])=>{if(out.length<N&&!out.some(y=>nk(y)===nk(k)))out.push(k)});const nkp=out.length;
- base.forEach(x=>{const q=KPV[kpN(x)];if(q&&q.v<vmin)return;if(out.length<Math.max(5,nkp)&&!out.some(y=>nk(y)===nk(x)))out.push(x)});out.kp=nkp;return out}
+ base.forEach(x=>{const q=KPV[kpN(x)];if(q&&q.v<vmin)return;if(rel.some(([k,y])=>bag(k)===bag(kpN(x))||(q&&q.sig&&y.sig===q.sig)))return;if(out.length<Math.max(5,nkp)&&!out.some(y=>nk(y)===nk(x)))out.push(x)});out.kp=nkp;return out}
 // ===== Scrematura: scarti certi (catene, enti, chiusi) e budget improbabile =====
 const CHAIN=/\b(mc ?donald'?s?|burger king|kfc|starbucks|autogrill|old wild west|roadhouse|la piadineria|rossopomodoro|spizzico|poke house|esselunga|carrefour|ipercoop|coop lombardia|lidl|eurospin|penny market|aldi|tigros|iperal|unes|despar|famila|bennet|md discount|decathlon|ikea|leroy merlin|bricoman|brico ?center|bricocenter|mediaworld|unieuro|euronics|trony|tecnocasa|tecnorete|tempocasa|gabetti|grimaldi immobiliare|remax|re\/max|engel ?& ?volkers|frimm|poste italiane|intesa sanpaolo|unicredit|bper|banco bpm|credem|credit agricole|mediolanum|fineco|deutsche bank|bnl|vodafone|windtre|wind tre|iliad|fastweb|zara|h ?& ?m|ovs|upim|primark|calzedonia|intimissimi|tezenis|yamamay|sephora|douglas|kiko|acqua ?& ?sapone|tigota|caddy'?s|pittarosso|foot ?locker|q8|enilive|eni station|esso|tamoil|mondo convenienza|poltronesofa|chateau d'?ax|maisons du monde|jysk|mail boxes etc|snai|sisal|lottomatica|dhl|bartolini|brt|gls)\b/;
 const PUBN=/\b(comune di|municipio|scuola (primaria|secondaria|dell'infanzia|statale|media|elementare|materna)|istituto comprensivo|liceo|istituto tecnico|istituto professionale|universita|ats|asst|ospedale|pronto soccorso|polizia|carabinieri|questura|prefettura|vigili del fuoco|caserma|parrocchia|chiesa|oratorio|diocesi|ufficio postale|biblioteca|cimitero|inps|inail|agenzia delle entrate|tribunale|croce rossa|croce verde|croce bianca|protezione civile)\b/;
