@@ -130,6 +130,24 @@ body[data-tab]:not([data-tab=map]) #tools{display:none}
 #msg:empty{display:none}
 .rpl{position:absolute;border-radius:50%;background:currentColor;opacity:.18;transform:scale(0);animation:rp .45s ease-out forwards;pointer-events:none}
 @keyframes rp{to{transform:scale(1);opacity:0}}
+
+.acc{background:var(--sc1);border-radius:14px;margin:8px 10px;padding:0 14px}.acc>summary{padding:12px 0;font-weight:600;font-size:14px;color:var(--onsur);cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center}.acc>summary::-webkit-details-marker{display:none}.acc>summary::after{content:'▾';margin-left:auto;opacity:.6;transition:transform .2s}.acc[open]>summary::after{transform:rotate(180deg)}.acc>div{padding:0 0 12px;font-size:13px;line-height:1.5;color:var(--onsv)}.rsum{padding:6px 12px 4px;font-size:13px}
+.hs.wrap>select{flex:1 0 100%!important}.hs.wrap>.btn{height:36px}
+/* v4.6 rifiniture */
+.brand{overflow:hidden}.brand .bt{overflow:hidden;text-overflow:ellipsis;min-width:0}
+@media(max-width:440px){.brand small{display:none}.brand{font-size:19px;gap:8px}.appbar .icon{width:40px}}
+#usage{flex:none;font-variant-numeric:tabular-nums;line-height:1.25;margin-right:2px}
+#bell b{top:3px;right:1px;pointer-events:none;font-variant-numeric:tabular-nums}
+nav i{white-space:nowrap}
+nav button .nb{position:absolute;top:-3px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--pri);color:var(--onpri,#fff);font:600 10.5px/18px Roboto,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--sc2);box-sizing:border-box;text-align:center}
+#toast{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 24px));display:flex;gap:10px;align-items:center;padding:8px 6px 8px 16px;border-radius:14px;font-size:13.5px;line-height:1.35;bottom:calc(84px + env(safe-area-inset-bottom));cursor:pointer}
+#toast .tx{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#toast .tq{flex:none;font-size:11px;opacity:.7;font-variant-numeric:tabular-nums}
+#toast .tc{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#ffffff1f;color:inherit;font-size:15px;cursor:pointer}
+body[data-tab="map"] #toast{bottom:calc(156px + env(safe-area-inset-bottom))}
+.hs{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+.hs.wrap{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}
+#legend{pointer-events:auto;cursor:pointer}#legend.mini{font-size:0;line-height:1;padding:7px 10px}#legend.mini i,#legend.mini br{display:none}#legend.mini::before{content:'ⓘ Legenda';font-size:12px;font-weight:500}
 </style></head><body>
 <div id="setup" hidden><div>
 <h3 style="margin-top:0;font-weight:500">Configurazione Google Maps</h3>
@@ -139,7 +157,7 @@ body[data-tab]:not([data-tab=map]) #tools{display:none}
 <div id="app">
  <div id="top">
   <div class="appbar">
-   <div class="brand"><i class="ms f">diamond</i>Diamondweb <small>Leads</small></div>
+   <div class="brand"><i class="ms f">diamond</i><span class="bt">Diamondweb</span><small>Leads</small></div>
    <div id="usage" onclick="setLimit()" title="Richieste a Google oggi: tocca per cambiare il limite">0/30</div>
    <button class="icon" id="bell" onclick="openNc()" title="Notifiche"><span class="ms">notifications</span><b id="bn">0</b></button>
    <button class="icon" onclick="openCal()" title="Apri Google Calendar"><span class="ms">calendar_month</span></button>
@@ -156,7 +174,7 @@ body[data-tab]:not([data-tab=map]) #tools{display:none}
  </div>
  <div id="views">
   <div class="view" id="v-home"><div id="home" style="padding:12px 14px 20px"></div></div>
-  <div class="view on" id="v-map"><div id="map"></div><div id="legend"><i style="background:#facc15;border:3px solid #111;border-radius:50%"></i>Mai chiamata<br><i style="background:#9333ea;transform:rotate(45deg) scale(.8)"></i>Salvata<br><i style="background:#0ea5e9;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #94a3b8"></i>Chiamata (colore = stato)</div><button id="mapf" onclick="openMapF()"><span class="ms">filter_alt</span><span id="mapft">Filtra mappa</span></button><button id="mapcs" onclick="togMapCS()"><span class="ms" id="mapcsi">visibility</span><span id="mapcst">Chiamate/salvate</span></button><button class="btn" id="fab" onclick="search()"><span class="ms">travel_explore</span><span id="fabt">Cerca in quest'area</span></button></div>
+  <div class="view on" id="v-map"><div id="map"></div><div id="legend" onclick="legTog()" title="Tocca per ridurre o aprire la legenda"><i style="background:#facc15;border:3px solid #111;border-radius:50%"></i>Mai chiamata<br><i style="background:#9333ea;transform:rotate(45deg) scale(.8)"></i>Salvata<br><i style="background:#0ea5e9;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #94a3b8"></i>Chiamata (colore = stato)</div><button id="mapf" onclick="openMapF()"><span class="ms">filter_alt</span><span id="mapft">Filtra mappa</span></button><button id="mapcs" onclick="togMapCS()"><span class="ms" id="mapcsi">visibility</span><span id="mapcst">Chiamate/salvate</span></button><button class="btn" id="fab" onclick="search()"><span class="ms">travel_explore</span><span id="fabt">Cerca in quest'area</span></button></div>
   <div class="view" id="v-list">
    <div class="sticky">
     <div class="hs"><button class="chip on" data-v="new" onclick="setLv('new',this)">Da chiamare</button><button class="chip" data-v="called" onclick="setLv('called',this)">Chiamati</button><button class="chip" data-v="all" onclick="setLv('all',this)">Tutti</button><button class="chip" id="cCb" data-v="cb" onclick="setLv('cb',this)">🔁 Da ricontattare</button><button class="chip" id="cJk" data-v="junk" onclick="setLv('junk',this)">🗑 Scartati</button></div>
@@ -221,7 +239,7 @@ body[data-tab]:not([data-tab=map]) #tools{display:none}
   <div class="view" id="v-reg">
    <div class="sticky">
     <div class="searchbar" style="height:44px;background:var(--sc2)"><span class="ms">search</span><input type="text" id="rq" placeholder="Cerca per nome o numero" autocomplete="off" oninput="renderReg()"><button class="icon" onclick="document.getElementById('rq').value='';renderReg()" title="Cancella"><span class="ms">close</span></button></div>
-    <div class="hs"><select id="regSt" onchange="renderReg()" style="flex:1 0 150px;width:auto"></select><button class="chip" id="rTod" onclick="setRng('today')">Oggi</button><button class="chip on" id="rAll" onclick="setRng('all')">Totale</button><button class="btn g" id="csvb" onclick="exportCsv()">⬇ CSV</button></div>
+    <div class="hs wrap"><select id="regSt" onchange="renderReg()" style="flex:1 0 150px;width:auto"></select><button class="chip" id="rTod" onclick="setRng('today')">Oggi</button><button class="chip on" id="rAll" onclick="setRng('all')">Totale</button><button class="btn g" id="csvb" onclick="exportCsv()">⬇ CSV</button></div>
     <div class="sortrow"><span class="ms">sort</span><span class="muted">Ordina</span><select class="ordsel" id="rOrd" onchange="selF(this)" data-d="auto"><option value="auto" selected>🕒 Ultima chiamata / data ricontatto</option><option value="q">🏆 Migliori prima (A → C)</option><option value="sec">🎯 Settore più redditizio</option><option value="dist">📍 Più vicine al centro della mappa</option><option value="az">🔤 Nome A–Z</option></select></div>
     <details class="flt" id="fR"><summary><span class="ms">filter_list</span><span id="frS">Filtri e periodo</span><span class="ms">expand_more</span></summary><div class="fb">
      <div class="lbl">Ranking</div>
@@ -248,7 +266,7 @@ body[data-tab]:not([data-tab=map]) #tools{display:none}
 <div id="apk" hidden style="position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:65;background:var(--sc1);border-radius:20px;padding:14px;box-shadow:0 8px 24px #0004"></div>
 <div id="repov" hidden style="position:fixed;inset:0;z-index:72;background:#f2f2f2;display:flex;flex-direction:column"><div style="display:flex;gap:8px;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;background:#0a0a0a"><button class="btn" id="repsh" style="flex:1;background:#fff;color:#0a0a0a" onclick="repShare()">📤 Invia PDF</button><button class="btn" style="background:#333" onclick="repClose()">✕</button></div><iframe id="repfr" style="border:0;flex:1;width:100%"></iframe></div>
 <div id="dlg" hidden><div id="dlgb" role="dialog" aria-modal="true"></div></div>
-<div id="toast" hidden onclick="this.hidden=true;(this._fn||openNc)()"></div>
+<div id="toast" hidden onclick="toastTap(event)" role="status" aria-live="polite"></div>
 <div id="nc" hidden onclick="if(event.target===this)closeNc()"><div id="ncb"></div></div>
 <div id="ses" hidden><div id="sesb"></div></div>
 <div id="mfs" hidden onclick="if(event.target===this)closeMapF()"><div id="mfb"></div></div>
@@ -883,8 +901,8 @@ function renderHome(){const el=$('home');if(!el)return;const H=homeData(),h=new 
  <div class="hcard"><h3>Imbuto degli ultimi 30 giorni</h3>${H.fun.map(([l,v],i)=>`<div class="fun"><span>${l}</span><div class="bar"><i style="width:${Math.round(100*v/f0)}%;${i>=2?'background:#db2777':''}${i===4?';background:#065f46':''}"></i></div><b style="text-align:right">${v}${i?` <small class="muted">${H.fun[i-1][1]?Math.round(100*v/H.fun[i-1][1])+'%':''}</small>`:''}</b></div>`).join('')}
  <div class="muted" style="font-size:12px">La percentuale è la conversione dal passaggio precedente. Le risposte si contano dal momento in cui l'app ha iniziato a registrarle.</div></div>`}
 // ===== Versione e novità =====
-const APPV='4.5';
-const NEWS=['Pianificazione della settimana: in Oggi vedi che giornata è (chiamate lun–mar, incontri mer–ven), le finestre libere per chiamare, le riunioni fisse e la settimana a colpo d\'occhio','Le proposte di orario per gli appuntamenti preferiscono mercoledì–venerdì ed evitano le riunioni (lunedì 8:30–10:30, primo lunedì del mese 9–13); i richiami automatici non cadono durante le riunioni','Avviso se fissi un incontro in un giorno di chiamate o sopra una riunione · tutto modificabile in Impostazioni → Pianificazione','Cosa funziona: segna l\'aggancio usato (con quello consigliato ⭐) e il motivo dei «no»; in Oggi e nel Registro vedi gli agganci che portano più appuntamenti e perché perdi le firme, con il consiglio pratico','Proposta del piano già pronta: il piano giusto per coprire le ricerche dove il cliente non compare, con frase e pareggio','Decisori presenti: domanda nello script, scelta quando fissi l\'appuntamento, avviso nella conferma T-1 e nella scheda rapida','WhatsApp già compilato per chi non risponde da 2 tentativi (promemoria, invio sempre manuale)','Scheda rapida per l\'incontro in PDF (uso interno): dati chiave, frasi pronte, visibilità, casi studio, obiezioni probabili, numeri e checklist','Casi studio: nella scheda → Incontro l\'app propone i 3 casi Diamondweb più adatti (stesso settore, specialità e zona) con la ricerca da mostrare dal vivo','Verifica dal vivo della posizione su Maps per ogni ricerca','Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
+const APPV='4.6';
+const NEWS=['Grafica rifinita: barra in alto senza sovrapposizioni, contatori come badge nella barra in basso, notifiche in coda una alla volta (con ✕ e «+N» se ce ne sono altre) che non coprono più i pulsanti della mappa','Legenda della mappa riducibile con un tocco · filtri del Registro che vanno a capo invece di uscire dallo schermo','Pianificazione della settimana: in Oggi vedi che giornata è (chiamate lun–mar, incontri mer–ven), le finestre libere per chiamare, le riunioni fisse e la settimana a colpo d\'occhio','Le proposte di orario per gli appuntamenti preferiscono mercoledì–venerdì ed evitano le riunioni (lunedì 8:30–10:30, primo lunedì del mese 9–13); i richiami automatici non cadono durante le riunioni','Avviso se fissi un incontro in un giorno di chiamate o sopra una riunione · tutto modificabile in Impostazioni → Pianificazione','Cosa funziona: segna l\'aggancio usato (con quello consigliato ⭐) e il motivo dei «no»; in Oggi e nel Registro vedi gli agganci che portano più appuntamenti e perché perdi le firme, con il consiglio pratico','Proposta del piano già pronta: il piano giusto per coprire le ricerche dove il cliente non compare, con frase e pareggio','Decisori presenti: domanda nello script, scelta quando fissi l\'appuntamento, avviso nella conferma T-1 e nella scheda rapida','WhatsApp già compilato per chi non risponde da 2 tentativi (promemoria, invio sempre manuale)','Scheda rapida per l\'incontro in PDF (uso interno): dati chiave, frasi pronte, visibilità, casi studio, obiezioni probabili, numeri e checklist','Casi studio: nella scheda → Incontro l\'app propone i 3 casi Diamondweb più adatti (stesso settore, specialità e zona) con la ricerca da mostrare dal vivo','Verifica dal vivo della posizione su Maps per ogni ricerca','Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
 function showNews(){$('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">✨ Novità della versione ${APPV}</b><button class="btn g" onclick="closeNc()">✕</button></div><div class="pad">${NEWS.map(x=>'<p style="margin:8px 0">• '+esc(x)+'</p>').join('')}</div>`;if($('nc').hidden){$('nc').hidden=false;pushSheet()}}
 setTimeout(()=>{try{const v=localStorage.getItem('dw_ver');if(v!==APPV){localStorage.setItem('dw_ver',APPV);if(v||Object.keys(db).length)toast('✨ App aggiornata alla versione '+APPV+': tocca per vedere le novità',showNews)}}catch(e){}},2500);
 // ===== Registro errori per l'assistenza =====
@@ -943,6 +961,8 @@ async function gBusy(force){if(!gOk())return null;if(!force&&Date.now()-GBUSY.t<
  let ids=['primary'];try{const cl=await gFetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=freeBusyReader');if(cl.items)ids=cl.items.filter(c=>c.selected||c.primary).map(c=>c.id).slice(0,25)}catch(e){}
  const j=await gFetch('https://www.googleapis.com/calendar/v3/freeBusy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({timeMin:new Date().toISOString(),timeMax:new Date(Date.now()+9*864e5).toISOString(),timeZone:'Europe/Rome',items:ids.map(id=>({id}))})});
  const b=[];Object.values(j.calendars||{}).forEach(c=>(c.busy||[]).forEach(x=>b.push([Date.parse(x.start),Date.parse(x.end)])));GBUSY={t:Date.now(),b};return b}
+function legTog(){const l=$('legend');if(!l)return;l.classList.toggle('mini');try{localStorage.setItem('dw_leg',l.classList.contains('mini')?'1':'0')}catch(e){}}
+setTimeout(()=>{try{const n=+(localStorage.getItem('dw_legn')||0),v=localStorage.getItem('dw_leg');if(v==='1'||(v==null&&n>=3))$('legend').classList.add('mini');localStorage.setItem('dw_legn',n+1)}catch(e){}},0);
 // ===== Pianificazione della settimana =====
 const PLAN0={call:[1,2],meet:[3,4,5],blk:[{d:1,s:'08:30',e:'10:30',t:'Riunione d\'area',r:'w'},{d:1,s:'09:00',e:'13:00',t:'Riunione commerciali',r:'m1'}]};
 const GGs=['dom','lun','mar','mer','gio','ven','sab'],GGl=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'],RIC={w:'ogni settimana',m1:'il primo del mese',mL:'l\'ultimo del mese'};
@@ -986,7 +1006,7 @@ function planCard(){const now=new Date(),k=dayKind(now),p=planCfg(),bl=blkOn(now
  const wk=weekDays().map(d=>{const kk=dayKind(d),key=dstr(d.getTime()),na=Object.values(db).filter(x=>x.st==='app'&&x.when===key).length,b=blkOn(d).length,isT=key===T;
   return `<div style="flex:1;min-width:0;text-align:center;padding:6px 2px;border-radius:12px;background:${isT?'var(--pri)':kk==='meet'?'#fce7f3':kk==='call'?'#e0f2fe':'transparent'};color:${isT?'#fff':'inherit'}"><small style="display:block;opacity:.8">${GGs[d.getDay()]} ${d.getDate()}</small><b style="font-size:15px">${kk==='call'?'📞':kk==='meet'?'🤝':'·'}${na?' '+na:''}</b>${b?'<small style="display:block">🏢</small>':''}</div>`}).join('');
  const mt=weekDays().filter(d=>dayKind(d)==='meet'&&dstr(d.getTime())>=T).reduce((n,d)=>n+Object.values(db).filter(x=>x.st==='app'&&x.when===dstr(d.getTime())).length,0);
- return `<div class="hcard"><div class="row"><h3 style="flex:1">${T1}</h3><button class="btn g" onclick="planSet()">⚙</button></div>${body}
+ return `<div class="hcard"><div class="row"><h3 style="flex:1">${T1}</h3><button class="icon" onclick="planSet()" title="Pianificazione della settimana"><span class="ms">tune</span></button></div>${body}
  <div style="display:flex;gap:4px;margin-top:10px">${wk}</div><div class="muted" style="font-size:12px;margin-top:4px">📞 chiamate · 🤝 incontri (numero = appuntamenti) · 🏢 impegno fisso${mt?' · '+mt+' incontri nei prossimi giorni di incontri':''}</div></div>`}
 function planSet(){const p=planCfg(),ch=(kind,n)=>`<button class="chip ${p[kind].includes(n)?'on':''}" onclick="planTog('${kind}',${n})">${GGs[n]}</button>`;
  $('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">📅 Pianificazione della settimana</b><button class="btn g" onclick="closeNc()">✕</button></div>
@@ -1466,7 +1486,7 @@ const MARK=()=>({new:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#fa
 function render(){
  const vis=visible(),lq=($('lq').value||'').trim();
  $('cCb').textContent='🔁 Da ricontattare ('+Object.values(db).filter(isFU).length+')';
- $('cnt').textContent=`Lista (${vis.length})`;fltSum('list');
+ navLbl('cnt','Lista',vis.length);fltSum('list');
  {const c=junkCount(),nm=Object.values(db).filter(d=>d.junk&&!d.st&&!d.calls&&!results.find(r=>r.id===d.id)).length;$('cJk').textContent='🗑 Scartati ('+(c.h+c.s+nm)+')'}
  $('list').innerHTML=vis.slice(0,LIM.list).map(r=>row(r)).join('')+moreBtn('list',vis.length)||(lv==='cb'?'<p class="muted pad">Nessuna azienda da ricontattare: imposta lo stato «Da richiamare» su un contatto.</p>':'<p class="muted pad">Nessun contatto. Sposta la mappa, scrivi cosa cerchi (es. «parrucchieri») e premi «Cerca in quest\'area».</p>');
  if(lv==='junk')$('list').innerHTML='<div class="muted" style="padding:8px 12px">Scarti certi (⛔ catene, enti, chiuse, scartate da te) e budget improbabile (💶). Apri una scheda per ripristinarla.</div>'+$('list').innerHTML;
@@ -1500,7 +1520,8 @@ function render(){
 const moreBtn=(k,n)=>n>LIM[k]?`<button class="btn g more" style="width:calc(100% - 24px);margin:8px 12px" onclick="more('${k}')">Mostra altre ${n-LIM[k]} ▾</button>`:'';
 function more(k){LIM[k]+=100;k==='list'?render():k==='sv'?renderSv():renderReg()}
 let IOM=null;function ioMore(){if(!window.IntersectionObserver)return;IOM=IOM||new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){IOM.unobserve(e.target);e.target.click()}}),{rootMargin:'600px'});document.querySelectorAll('.more').forEach(b=>IOM.observe(b))}
-function navCounts(){try{$('scnt').textContent=`Salvati (${Object.values(db).filter(d=>d.sv&&!d.st&&!d.calls).length})`;$('rcnt').textContent=`Registro (${regAll().length})`}catch(e){}}
+function navLbl(id,l,n){const e=$(id);if(e)e.innerHTML=l+(n?`<b class="nb">${n>999?'999+':n}</b>`:'')}
+function navCounts(){try{navLbl('scnt','Salvati',Object.values(db).filter(d=>d.sv&&!d.st&&!d.calls).length);navLbl('rcnt','Registro',regAll().length)}catch(e){}}
 // raggruppamento dei marcatori quando sono tanti (si aprono zoomando)
 function cluInit(){if(CLU||!map||!window.markerClusterer)return;try{const MC=markerClusterer;CLU=new MC.MarkerClusterer({map,markers:Object.values(markers),algorithm:MC.SuperClusterAlgorithm?new MC.SuperClusterAlgorithm({maxZoom:14,radius:70}):undefined})}catch(e){CLU=null}}
 function cluLoad(){if(window.markerClusterer)return cluInit();const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/@googlemaps/markerclusterer@2.5.3/dist/index.min.js';sc.onload=cluInit;document.head.appendChild(sc)}
@@ -1784,19 +1805,25 @@ function renderSv(){
   const j=junkInfo(d);if(fltOn('sJunk')&&j.h.length)return false;if(fltOn('sLow')&&j.s.length)return false;return true});
  fillSel('s',list);list=xSort(xFilter(list,'s'),'s');window._svList=list;
  window._svList=list;
- $('scnt').textContent=`Salvati (${all.length})`;$('svinfo').textContent=list.length<all.length?`${list.length} su ${all.length}`:'';
+ navLbl('scnt','Salvati',all.length);$('svinfo').textContent=list.length<all.length?`${list.length} su ${all.length}`:'';
  fltSum('sv');
  $('svl').innerHTML=list.slice(0,LIM.sv).map(d=>row(d,'sv')).join('')+moreBtn('sv',list.length)||(all.length?'<p class="muted pad">Nessun salvato con questi filtri: apri «Filtri» e togline qualcuno.</p>':'<p class="muted pad">Nessun contatto salvato. Nella Lista tocca 🔖 su un\'azienda che vuoi chiamare più tardi: finisce qui e, appena la chiami, passa nel Registro (mai in entrambi).</p>')}
 function renderReg(){
  const f=$('regSt').value,all=regAll().sort((a,b)=>f==='meet'?meetKey(b).localeCompare(meetKey(a)):(f==='cb'||f==='app')?((a.when||'9999')+(a.whenT||'99:99')).localeCompare((b.when||'9999')+(b.whenT||'99:99')):(b.last||0)-(a.last||0));
- $('rcnt').textContent=`Registro (${all.length})`;
+ navLbl('rcnt','Registro',all.length);
  const S=stats();
  $('stats').innerHTML=`<button class="btn g" style="margin:8px 10px 0;width:calc(100% - 20px)" onclick="sendReport()">📤 Resoconto di oggi al responsabile (WhatsApp)</button><div class="cards">
  <div class="card" onclick="goReg('')"><b>${S.calls}</b>📞 Chiamate ${rng==='today'?'oggi':'totali'}</div>
  <div class="card" onclick="goReg('app')"><b>${S.app}</b>📅 Appuntamenti fissati</div>
  <div class="card" onclick="goReg('cb')"><b>${S.cb}</b>🔁 Da ricontattare${S.due?`<i>${S.due} scaduti o per oggi</i>`:''}</div>
  <div class="card" onclick="goReg('no')"><b>${S.no}</b>❌ Non interessati</div></div>
- <div class="muted" style="padding:0 10px 8px">Aziende contattate: ${S.comp} · Interessati: ${S.int} · In trattativa: ${S.trat} · Non risponde: ${S.nr}${S.win?` · 🎉 Firmati: ${S.win}`:''}<br>📊 <details><summary>A che ora ti rispondono (tutte le chiamate)</summary>${ansLine('',1)||'Servono qualche decina di chiamate esitate per vedere la statistica.'}</details><br>🧠 <details open><summary>Cosa funziona (agganci e motivi dei no)</summary>${insightHtml()||'Segna l\'aggancio che usi e il motivo dei «no»: dopo qualche giorno qui vedi cosa ti porta più appuntamenti e firme.'}</details><br>🛡 <details><summary>Obiezioni più frequenti</summary>${objStats()}</details><br>📊 <details><summary>Resa per settore (per tarare il ranking)</summary>${secStats().map(([k,v])=>`<div>${v.st?'★'.repeat(v.st)+' ':''}${esc(k)}: ${v.n} aziende chiamate · ${v.a} appuntamenti (${Math.round(100*v.a/v.n)}%) · ${v.i} interessate</div>`).join('')||'Ancora nessun dato.'}</details> <details><summary>Resa per zona</summary>${zoneStatsHtml()}</details><br>💾 Ultimo backup: ${localStorage.getItem('dw_lastbak')?new Date(+localStorage.getItem('dw_lastbak')).toLocaleDateString('it-IT'):'mai — fanne uno!'}</div>`;
+ <div class="rsum muted">Aziende contattate: ${S.comp} · Interessati: ${S.int} · In trattativa: ${S.trat} · Non risponde: ${S.nr}${S.win?` · 🎉 Firmati: ${S.win}`:''}</div>
+ <details class="acc"><summary>📊 A che ora ti rispondono</summary><div>${ansLine('',1)||'Servono qualche decina di chiamate esitate per vedere la statistica.'}</div></details>
+ <details class="acc" open><summary>🧠 Cosa funziona: agganci e motivi dei no</summary><div>${insightHtml()||'Segna l\'aggancio che usi e il motivo dei «no»: dopo qualche giorno qui vedi cosa ti porta più appuntamenti e firme.'}</div></details>
+ <details class="acc"><summary>🛡 Obiezioni più frequenti</summary><div>${objStats()}</div></details>
+ <details class="acc"><summary>🎯 Resa per settore</summary><div>${secStats().map(([k,v])=>`<div>${v.st?'★'.repeat(v.st)+' ':''}${esc(k)}: ${v.n} aziende chiamate · ${v.a} appuntamenti (${Math.round(100*v.a/v.n)}%) · ${v.i} interessate</div>`).join('')||'Ancora nessun dato.'}</div></details>
+ <details class="acc"><summary>🗺 Resa per zona</summary><div>${zoneStatsHtml()}</div></details>
+ <div class="rsum muted">💾 Ultimo backup: ${localStorage.getItem('dw_lastbak')?new Date(+localStorage.getItem('dw_lastbak')).toLocaleDateString('it-IT'):'mai — fanne uno!'}</div>`;
  const q=($('rq').value||'').trim(),dA=$('dFrom').value,dB=$('dTo').value,
   list0=(q?all.filter(d=>matchQ(d,q)):all.filter(d=>!f||(f==='meet'?hadMeet(d):d.st===f))).filter(inDates);fillSel('r',list0);const list=xSort(xFilter(list0,'r'),'r');fltSum('reg');window._regList=list;
  $('csvb').textContent=(q||f||dA||dB)?`⬇ CSV (${list.length})`:'⬇ CSV';
@@ -2002,7 +2029,12 @@ function openNc(){const a=agenda(),sec=(t,L,f)=>L.length?`<h4>${t} (${L.length})
 function ncApp(d,kind){return `<div class="item" onclick="closeNc();openPanel('${d.id}')"><div style="flex:none;width:56px;font-weight:700;font-size:16px;color:#0f766e">${esc(d.whenT||'–:–')}</div><div class="t"><b>${esc(d.name)}</b>${kind==='conf'&&d.dec!==1?`<small style="color:#b91c1c">👥 Chiedi conferma che ci saranno tutti i decisori</small>`:''}<small>${d.phone?'📞 '+esc(d.phone):''}${d.owner?' · 👤 '+esc(d.owner):''}</small><small>${esc(d.addr||'')}</small>${kind==='esit'?`<small>📅 incontro ${/^(8|11)\b/.test(dIT(d.when))?'dell’':'del '}${esc(dIT(d.when))}</small>`:''}${kind==='post'?`<small>${d.when?'📅 '+esc(dIT(d.when)):'⚠ data non impostata: aprila e impostala'}</small>`:''}</div>
  ${kind==='nrwa'?`<button class="cbtn" style="border:0" title="Apri WhatsApp con il messaggio pronto" onclick="event.stopPropagation();waMsg('${d.id}','nr')">💬</button>`:kind==='esit'?`<button class="sbtn" style="border-color:#16a34a" title="Firmato" onclick="event.stopPropagation();meetOut('${d.id}','win')">✅</button><button class="sbtn" title="Da seguire" onclick="event.stopPropagation();meetOut('${d.id}','fu')">📌</button><button class="sbtn" title="Non interessato" onclick="event.stopPropagation();meetOut('${d.id}','no')">❌</button>`:kind==='post'?`<button class="cbtn" style="border:0" onclick="event.stopPropagation();waMsg('${d.id}','post')">💬</button>`:kind==='conf'?`${d.phone?`<a class="cbtn" href="tel:${tel(d)}" onclick="event.stopPropagation()"><span class="ms f">call</span></a>`:''}<button class="sbtn" style="border-color:#16a34a;font-size:12px;font-weight:700" title="Il cliente ha confermato" onclick="event.stopPropagation();toggleOk2('${d.id}')">OK2</button>`:`<button class="cbtn" style="border:0" onclick="event.stopPropagation();waMsg('${d.id}','t0')">💬</button>`}</div>`}
 function closeNc(fromPop){$('nc').hidden=true;if(!fromPop)popSheet()}
-function toast(t,fn){const el=$('toast');el._fn=fn||null;el.textContent=t;el.hidden=false;clearTimeout(window._tt);window._tt=setTimeout(()=>el.hidden=true,15000)}
+const TQ=[];let TCUR=null;
+function toast(t,fn){t=String(t);if((TCUR&&TCUR.t===t)||TQ.some(x=>x.t===t))return;TQ.push({t,fn:fn||null});if(!TCUR)return toastNext();const el=$('toast'),q=el.querySelector('.tq');if(q)q.textContent='+'+TQ.length;else{const b=el.querySelector('.tc');if(b)b.insertAdjacentHTML('beforebegin','<span class="tq">+'+TQ.length+'</span>')}clearTimeout(window._tt);window._tt=setTimeout(toastNext,6000)}
+function toastNext(){const el=$('toast');clearTimeout(window._tt);TCUR=TQ.shift()||null;if(!TCUR){el.hidden=true;return}
+ el._fn=TCUR.fn;el.innerHTML='<span class="tx"></span>'+(TQ.length?'<span class="tq">+'+TQ.length+'</span>':'')+'<button class="tc" aria-label="Chiudi" title="Chiudi">✕</button>';el.querySelector('.tx').textContent=TCUR.t;el.hidden=false;
+ window._tt=setTimeout(toastNext,TQ.length?6000:12000)}
+function toastTap(e){const el=$('toast'),cur=TCUR;if(e&&e.target&&e.target.closest&&e.target.closest('.tc')){e.stopPropagation();return toastNext()}toastNext();try{((cur&&cur.fn)||openNc)()}catch(err){}}
 function checkAlarms(){
  const t=today(),now=new Date(),m=now.getHours()*60+now.getMinutes();let nt={};try{nt=JSON.parse(localStorage.getItem('dw_notified')||'{}')}catch(e){}
  Object.keys(nt).forEach(k=>{if(k.slice(0,10)<t)delete nt[k]});
