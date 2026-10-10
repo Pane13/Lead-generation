@@ -823,6 +823,7 @@ async function openSet(){const on=k=>localStorage.getItem(k)!=='0',mb=b=>b==null
  <label class="muted">📤 WhatsApp del responsabile<input type="text" inputmode="tel" value="${esc(mg)}" placeholder="vuoto = scegli il contatto ogni volta" onchange="let m=this.value.replace(/[^0-9]/g,'');if(m&&!m.startsWith('39'))m='39'+m;try{localStorage.setItem('dw_mgr',m||'-')}catch(e){};toast('✓ Salvato')"></label>
  <label class="muted">📅 Gmail del calendario<input type="text" inputmode="email" value="${esc(localStorage.getItem('dw_gmail')||'')}" placeholder="vuoto = account principale del telefono" onchange="try{localStorage.setItem('dw_gmail',this.value.trim())}catch(e){};toast('✓ Salvato')"></label>
  <div class="row" style="gap:10px"><label class="muted" style="flex:1">🎯 Chiamate al giorno<input type="text" inputmode="numeric" value="${goalC()}" onchange="localStorage.setItem('dw_goal',Math.max(1,parseInt(this.value)||60));toast('✓ Obiettivo salvato')"></label><label class="muted" style="flex:1">📅 Appuntamenti al giorno<input type="text" inputmode="numeric" value="${goalA()}" onchange="localStorage.setItem('dw_goalA',Math.max(1,parseInt(this.value)||3));toast('✓ Obiettivo salvato')"></label></div></div>
+ <h4>Pianificazione</h4>${row('📅','Settimana di lavoro',(()=>{const p=planCfg();return 'chiamate: '+p.call.map(n=>GGs[n]).join(', ')+' · incontri: '+p.meet.map(n=>GGs[n]).join(', ')+' · '+p.blk.length+' impegni fissi'})(),'planSet()')}
  <h4>Google</h4>${row('🔑','Chiave Google Maps',k?'…'+esc(k.slice(-6)):'non impostata','resetKey()')}<div class="pad" style="padding-top:0"><label class="muted">🔢 Limite giornaliero richieste Google (oggi: ${use.n||0} usate)<input type="text" inputmode="numeric" value="${use.lim}" onchange="const v=parseInt(this.value);if(v>0){use.lim=v;saveUse();showUse();toast('✓ Limite salvato')}"></label></div>${row('📍','Nomi concorrenti (Maps) questo mese',proM().n+' su 5.000 gratuiti','')}
  <h4>Google Calendar e Drive</h4>${gCid()?row(gOk()?'🟢':'⚪','Account Google',gOk()?'collegato: orari liberi dal calendario e backup automatico attivi':'tocca per collegare (serve un tocco ogni tanto, quando Google chiede di riconfermare)','gConnect()'):row('🔗','Collega Google (gratis)','orari liberi dal tuo calendario e backup automatico su Drive','gGuide()')}${gCid()?row('☁️','Backup su Drive adesso','ultimo: '+(localStorage.getItem('dw_gdlast')?new Date(+localStorage.getItem('dw_gdlast')).toLocaleString('it-IT'):'mai'),'driveBackup(true)')+row('⬇️','Ripristina da Drive','unisce il backup di Drive a questo dispositivo (utile dal computer)','driveRestore()')+row('⚙️','ID client Google','…'+esc(gCid().slice(0,12)),'gGuide()'):''}
  <h4>Casi studio</h4>${row('🏆','Casi studio Diamondweb',CASES.length+' casi'+(CASES===CASES0?' (elenco fornito)':' (importati da te)')+' · tocca per importare un Excel aggiornato','$(\'csfile\').click()')}
@@ -868,7 +869,7 @@ function homeRoute(){const A=Object.values(db).filter(d=>d.st==='app'&&d.when===
 function renderHome(){const el=$('home');if(!el)return;const H=homeData(),h=new Date().getHours(),sal=h<13?'Buongiorno':h<18?'Buon pomeriggio':'Buonasera',pc=(a,b)=>Math.min(100,Math.round(100*a/Math.max(1,b)));
  const due=H.A.late.length+H.A.tod.length,todo=[[H.A.esit.length,'🤝 Incontri da esitare'],[due,'🔁 Richiami da fare oggi'],[H.A.conf.length,'✅ Conferme T-1 da chiamare'],[H.A.post.length,'💬 WhatsApp di conferma da inviare'],[H.A.t0.length,'☀️ WhatsApp del giorno stesso'],[(H.A.nrwa||[]).length,'📵 WhatsApp a chi non risponde']].filter(x=>x[0]);
  const mx=Math.max(1,...H.wk.map(w=>w.c)),f0=Math.max(1,H.fun[0][1]);
- el.innerHTML=`<div style="font-size:22px;font-weight:700">${sal}${ME?', '+esc(ME.split(' ')[0]):''} 👋</div><div class="muted" style="margin-bottom:12px">${new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</div>
+ el.innerHTML=`<div style="font-size:22px;font-weight:700">${sal}${ME?', '+esc(ME.split(' ')[0]):''} 👋</div><div class="muted" style="margin-bottom:12px">${new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</div>${(()=>{try{return planCard()}catch(e){logErr('planCard '+e.message);return ''}})()}
  <div class="kp"><div onclick="setGoal();renderHome()"><small>Chiamate oggi</small><b>${H.callsT}<span class="muted" style="font-size:14px"> / ${goalC()}</span></b><div class="pbar"><i style="width:${pc(H.callsT,goalC())}%"></i></div></div>
  <div onclick="setGoal();renderHome()"><small>Appuntamenti fissati</small><b>${H.appsT}<span class="muted" style="font-size:14px"> / ${goalA()}</span></b><div class="pbar"><i style="width:${pc(H.appsT,goalA())}%;background:#db2777"></i></div></div>
  <div><small>Risposte oggi</small><b>${H.caT?Math.round(100*H.ansT/H.caT)+'%':'—'}</b><small>${H.ansT} su ${H.caT} esitate</small></div><div><small>Firmati questo mese</small><b>${H.winM}</b><small>${H.winM?'🎉 ottimo lavoro':'il primo è il più difficile'}</small></div></div>
@@ -882,8 +883,8 @@ function renderHome(){const el=$('home');if(!el)return;const H=homeData(),h=new 
  <div class="hcard"><h3>Imbuto degli ultimi 30 giorni</h3>${H.fun.map(([l,v],i)=>`<div class="fun"><span>${l}</span><div class="bar"><i style="width:${Math.round(100*v/f0)}%;${i>=2?'background:#db2777':''}${i===4?';background:#065f46':''}"></i></div><b style="text-align:right">${v}${i?` <small class="muted">${H.fun[i-1][1]?Math.round(100*v/H.fun[i-1][1])+'%':''}</small>`:''}</b></div>`).join('')}
  <div class="muted" style="font-size:12px">La percentuale è la conversione dal passaggio precedente. Le risposte si contano dal momento in cui l'app ha iniziato a registrarle.</div></div>`}
 // ===== Versione e novità =====
-const APPV='4.4';
-const NEWS=['Cosa funziona: segna l\'aggancio usato (con quello consigliato ⭐) e il motivo dei «no»; in Oggi e nel Registro vedi gli agganci che portano più appuntamenti e perché perdi le firme, con il consiglio pratico','Proposta del piano già pronta: il piano giusto per coprire le ricerche dove il cliente non compare, con frase e pareggio','Decisori presenti: domanda nello script, scelta quando fissi l\'appuntamento, avviso nella conferma T-1 e nella scheda rapida','WhatsApp già compilato per chi non risponde da 2 tentativi (promemoria, invio sempre manuale)','Scheda rapida per l\'incontro in PDF (uso interno): dati chiave, frasi pronte, visibilità, casi studio, obiezioni probabili, numeri e checklist','Casi studio: nella scheda → Incontro l\'app propone i 3 casi Diamondweb più adatti (stesso settore, specialità e zona) con la ricerca da mostrare dal vivo','Verifica dal vivo della posizione su Maps per ogni ricerca','Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
+const APPV='4.5';
+const NEWS=['Pianificazione della settimana: in Oggi vedi che giornata è (chiamate lun–mar, incontri mer–ven), le finestre libere per chiamare, le riunioni fisse e la settimana a colpo d\'occhio','Le proposte di orario per gli appuntamenti preferiscono mercoledì–venerdì ed evitano le riunioni (lunedì 8:30–10:30, primo lunedì del mese 9–13); i richiami automatici non cadono durante le riunioni','Avviso se fissi un incontro in un giorno di chiamate o sopra una riunione · tutto modificabile in Impostazioni → Pianificazione','Cosa funziona: segna l\'aggancio usato (con quello consigliato ⭐) e il motivo dei «no»; in Oggi e nel Registro vedi gli agganci che portano più appuntamenti e perché perdi le firme, con il consiglio pratico','Proposta del piano già pronta: il piano giusto per coprire le ricerche dove il cliente non compare, con frase e pareggio','Decisori presenti: domanda nello script, scelta quando fissi l\'appuntamento, avviso nella conferma T-1 e nella scheda rapida','WhatsApp già compilato per chi non risponde da 2 tentativi (promemoria, invio sempre manuale)','Scheda rapida per l\'incontro in PDF (uso interno): dati chiave, frasi pronte, visibilità, casi studio, obiezioni probabili, numeri e checklist','Casi studio: nella scheda → Incontro l\'app propone i 3 casi Diamondweb più adatti (stesso settore, specialità e zona) con la ricerca da mostrare dal vivo','Verifica dal vivo della posizione su Maps per ogni ricerca','Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
 function showNews(){$('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">✨ Novità della versione ${APPV}</b><button class="btn g" onclick="closeNc()">✕</button></div><div class="pad">${NEWS.map(x=>'<p style="margin:8px 0">• '+esc(x)+'</p>').join('')}</div>`;if($('nc').hidden){$('nc').hidden=false;pushSheet()}}
 setTimeout(()=>{try{const v=localStorage.getItem('dw_ver');if(v!==APPV){localStorage.setItem('dw_ver',APPV);if(v||Object.keys(db).length)toast('✨ App aggiornata alla versione '+APPV+': tocca per vedere le novità',showNews)}}catch(e){}},2500);
 // ===== Registro errori per l'assistenza =====
@@ -942,12 +943,73 @@ async function gBusy(force){if(!gOk())return null;if(!force&&Date.now()-GBUSY.t<
  let ids=['primary'];try{const cl=await gFetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=freeBusyReader');if(cl.items)ids=cl.items.filter(c=>c.selected||c.primary).map(c=>c.id).slice(0,25)}catch(e){}
  const j=await gFetch('https://www.googleapis.com/calendar/v3/freeBusy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({timeMin:new Date().toISOString(),timeMax:new Date(Date.now()+9*864e5).toISOString(),timeZone:'Europe/Rome',items:ids.map(id=>({id}))})});
  const b=[];Object.values(j.calendars||{}).forEach(c=>(c.busy||[]).forEach(x=>b.push([Date.parse(x.start),Date.parse(x.end)])));GBUSY={t:Date.now(),b};return b}
+// ===== Pianificazione della settimana =====
+const PLAN0={call:[1,2],meet:[3,4,5],blk:[{d:1,s:'08:30',e:'10:30',t:'Riunione d\'area',r:'w'},{d:1,s:'09:00',e:'13:00',t:'Riunione commerciali',r:'m1'}]};
+const GGs=['dom','lun','mar','mer','gio','ven','sab'],GGl=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'],RIC={w:'ogni settimana',m1:'il primo del mese',mL:'l\'ultimo del mese'};
+function planCfg(){try{const p=JSON.parse(localStorage.getItem('dw_plan')||'null');if(p&&Array.isArray(p.call)&&Array.isArray(p.blk))return p}catch(e){}return JSON.parse(JSON.stringify(PLAN0))}
+function planSave(p){try{localStorage.setItem('dw_plan',JSON.stringify(p))}catch(e){}}
+const hm2m=s=>{const a=String(s||'0:0').split(/[:.]/).map(Number);return (a[0]||0)*60+(a[1]||0)},m2hm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.round(m%60)).padStart(2,'0');
+function blkOn(day){const dt=new Date(day),wd=dt.getDay(),dm=dt.getDate(),last=new Date(dt.getFullYear(),dt.getMonth()+1,0).getDate(),t0=new Date(dt);t0.setHours(0,0,0,0);
+ return planCfg().blk.filter(b=>b.d===wd&&(b.r==='w'||(b.r==='m1'&&dm<=7)||(b.r==='mL'&&dm+7>last))).map(b=>({a:t0.getTime()+hm2m(b.s)*6e4,b:t0.getTime()+hm2m(b.e)*6e4,t:b.t,s:b.s,e:b.e})).sort((x,y)=>x.a-y.a)}
+function dayKind(day){const wd=new Date(day).getDay(),p=planCfg();return p.call.includes(wd)?'call':p.meet.includes(wd)?'meet':(wd%6?'free':'off')}
+function planFix(x){if(!x||!x.d||!x.t)return x;
+ for(let g=0;g<6;g++){const day=pd(x.d),t0=new Date(day);t0.setHours(0,0,0,0);const a=t0.getTime()+hm2m(x.t)*6e4,bl=blkOn(day).find(b=>a>=b.a-15*6e4&&a<b.b);if(!bl)break;
+  const e=new Date(bl.b+15*6e4);if(e.getHours()>=19){const n=new Date(day);n.setDate(n.getDate()+1);while(n.getDay()%6===0)n.setDate(n.getDate()+1);x.d=dstr(n.getTime());x.t='10:30'}else x.t=m2hm(e.getHours()*60+e.getMinutes())}
+ return x}
+let _apHint=['',0];
+function apDayHint(id){const d=db[id];if(!d||d.st!=='app'||!d.when)return;const day=pd(d.when),k=dayKind(day);let msg='';
+ if(d.whenT){const t0=new Date(day);t0.setHours(0,0,0,0);const a=t0.getTime()+hm2m(d.whenT)*6e4,b=blkOn(day).find(x=>a<x.b&&a+3600e3>x.a);if(b)msg='⚠ '+GGl[day.getDay()]+' dalle '+b.s+' alle '+b.e+' hai «'+b.t+'»: scegli un altro orario.'}
+ if(!msg&&k==='call')msg='📞 '+GGl[day.getDay()][0].toUpperCase()+GGl[day.getDay()].slice(1)+' è un giorno di chiamate: se il cliente può, meglio un giorno di incontri ('+planCfg().meet.map(n=>GGs[n]).join(', ')+').';
+ if(!msg)return;if(_apHint[0]===msg&&Date.now()-_apHint[1]<4000)return;_apHint=[msg,Date.now()];setTimeout(()=>toast(msg),300)}
+function apMsOn(k){return Object.values(db).filter(d=>d.st==='app'&&d.when===k&&d.whenT).map(d=>{const t=pd(d.when),[h,mi]=d.whenT.split(':').map(Number);t.setHours(h,mi||0,0,0);return t.getTime()})}
+function freeWins(day){const t0=new Date(day);t0.setHours(0,0,0,0);const T=t0.getTime();let W=[[9*60,19*60]];
+ const cut=(s,e)=>{W=W.flatMap(([a,b])=>e<=a||s>=b?[[a,b]]:[[a,s],[e,b]].filter(([x,y])=>y-x>=30))};
+ blkOn(day).forEach(b=>cut((b.a-T)/6e4,(b.b-T)/6e4+15));
+ apMsOn(dstr(T)).forEach(a=>{const m=(a-T)/6e4;cut(m-60,m+120)});
+ (GBUSY.b||[]).forEach(([x,y])=>{if(y>T&&x<T+864e5)cut((x-T)/6e4-15,(y-T)/6e4+15)});
+ return W}
+function weekDays(){const n=new Date();n.setHours(0,0,0,0);const s=new Date(n);if(n.getDay()===6)s.setDate(n.getDate()+2);else if(n.getDay()===0)s.setDate(n.getDate()+1);else s.setDate(n.getDate()-(n.getDay()-1));
+ return [0,1,2,3,4].map(i=>{const d=new Date(s);d.setDate(s.getDate()+i);return d})}
+function planCard(){const now=new Date(),k=dayKind(now),p=planCfg(),bl=blkOn(now),nowM=now.getHours()*60+now.getMinutes(),T=today();
+ const best=bestSlot('')||[],isB=([a,b])=>best.slice(0,2).some(i=>SLOTS[i]&&SLOTS[i][0]*60<b&&SLOTS[i][1]*60>a);
+ const W=freeWins(now).map(([a,b])=>[Math.max(a,nowM),b]).filter(([a,b])=>b-a>=30),ws=W.map(w=>m2hm(w[0])+'–'+m2hm(w[1])+(isB(w)?' ⭐':'')).join(' · ');
+ const nApp=Object.values(db).filter(d=>d.st==='app'&&d.when===T).length;
+ const T1={call:'📞 Giornata di chiamate',meet:'🤝 Giornata di incontri',free:'🗂 Giornata libera',off:'🌿 Weekend'}[k];
+ let body='';
+ if(bl.length)body+=bl.map(b=>`<div class="agi"><b style="width:104px;color:#7c3aed">${b.s}–${b.e}</b><span style="flex:1">🏢 ${esc(b.t)}</span></div>`).join('');
+ if(k==='call')body+=`<p style="margin:8px 0 4px">${ws?'Finestre per chiamare: <b>'+ws+'</b>':'Per oggi le finestre di chiamata sono finite.'}</p><p class="muted" style="margin:0">Obiettivo: fissare gli incontri da ${p.meet.map(n=>GGl[n]).join(', ').replace(/, ([^,]*)$/,' a $1')}. ${best.length?'⭐ = fascia in cui ti rispondono di più.':''}</p>`;
+ else if(k==='meet')body+=nApp?`<p style="margin:8px 0 4px">${nApp} incontr${nApp>1?'i':'o'} in agenda. ${ws?'Buchi per telefonare: <b>'+ws+'</b>':'Nessun buco utile per telefonare.'}</p><p class="muted" style="margin:0">Nei buchi: richiami, conferme T-1 e WhatsApp, poi nuove chiamate.</p>`:`<p style="margin:8px 0 4px">Nessun incontro fissato oggi: va bene chiamare. ${ws?'Finestre: <b>'+ws+'</b>':''}</p><p class="muted" style="margin:0">Prova a fissare per i prossimi giorni di incontri.</p>`;
+ else if(k==='free')body+=`<p style="margin:8px 0 0">${ws?'Finestre libere: <b>'+ws+'</b>':'Nessuna finestra libera.'}</p>`;
+ // prossimo giorno lavorativo con impegni fissi
+ const nd=new Date(now);nd.setDate(nd.getDate()+1);while(nd.getDay()%6===0)nd.setDate(nd.getDate()+1);const nb=blkOn(nd);
+ if(nb.length)body+=`<p style="margin:8px 0 0">📌 <b>${(nd.getDate()-now.getDate()===1?'Domani':GGl[nd.getDay()][0].toUpperCase()+GGl[nd.getDay()].slice(1))}</b>: ${nb.map(b=>b.s+'–'+b.e+' '+esc(b.t)).join(' · ')}</p>`;
+ const wk=weekDays().map(d=>{const kk=dayKind(d),key=dstr(d.getTime()),na=Object.values(db).filter(x=>x.st==='app'&&x.when===key).length,b=blkOn(d).length,isT=key===T;
+  return `<div style="flex:1;min-width:0;text-align:center;padding:6px 2px;border-radius:12px;background:${isT?'var(--pri)':kk==='meet'?'#fce7f3':kk==='call'?'#e0f2fe':'transparent'};color:${isT?'#fff':'inherit'}"><small style="display:block;opacity:.8">${GGs[d.getDay()]} ${d.getDate()}</small><b style="font-size:15px">${kk==='call'?'📞':kk==='meet'?'🤝':'·'}${na?' '+na:''}</b>${b?'<small style="display:block">🏢</small>':''}</div>`}).join('');
+ const mt=weekDays().filter(d=>dayKind(d)==='meet'&&dstr(d.getTime())>=T).reduce((n,d)=>n+Object.values(db).filter(x=>x.st==='app'&&x.when===dstr(d.getTime())).length,0);
+ return `<div class="hcard"><div class="row"><h3 style="flex:1">${T1}</h3><button class="btn g" onclick="planSet()">⚙</button></div>${body}
+ <div style="display:flex;gap:4px;margin-top:10px">${wk}</div><div class="muted" style="font-size:12px;margin-top:4px">📞 chiamate · 🤝 incontri (numero = appuntamenti) · 🏢 impegno fisso${mt?' · '+mt+' incontri nei prossimi giorni di incontri':''}</div></div>`}
+function planSet(){const p=planCfg(),ch=(kind,n)=>`<button class="chip ${p[kind].includes(n)?'on':''}" onclick="planTog('${kind}',${n})">${GGs[n]}</button>`;
+ $('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">📅 Pianificazione della settimana</b><button class="btn g" onclick="closeNc()">✕</button></div>
+ <div class="pad" style="display:grid;gap:12px">
+ <div><div class="lbl">📞 Giorni di chiamate</div><div class="cw">${[1,2,3,4,5].map(n=>ch('call',n)).join('')}</div></div>
+ <div><div class="lbl">🤝 Giorni di incontri (le proposte di orario partono da qui)</div><div class="cw">${[1,2,3,4,5].map(n=>ch('meet',n)).join('')}</div></div>
+ <div><div class="lbl">🏢 Impegni fissi (riunioni)</div>${p.blk.map((b,i)=>`<div class="agi"><b style="width:44px">${GGs[b.d]}</b><span style="flex:1">${b.s}–${b.e} · ${esc(b.t)}<br><small class="muted">${RIC[b.r]||b.r}</small></span><button class="btn g" onclick="planDel(${i})">✕</button></div>`).join('')||'<p class="muted">Nessuno.</p>'}
+ <button class="btn g" style="margin-top:6px" onclick="planAdd()">＋ Aggiungi impegno fisso</button></div>
+ <p class="muted" style="margin:0">Le proposte di orario per gli appuntamenti preferiscono i giorni di incontri ed evitano gli impegni fissi; i richiami automatici non cadono durante le riunioni. Un giorno può essere sia di chiamate sia di incontri.</p>
+ <button class="btn g" onclick="localStorage.removeItem('dw_plan');planSet();toast('Ripristinata la pianificazione iniziale')">↺ Ripristina impostazioni iniziali</button></div>`;
+ if($('nc').hidden){$('nc').hidden=false;pushSheet()}}
+function planTog(kind,n){const p=planCfg(),a=p[kind],i=a.indexOf(n);if(i>=0)a.splice(i,1);else{a.push(n);a.sort()}planSave(p);planSet();if(document.body.dataset.tab==='home')renderHome()}
+function planDel(i){const p=planCfg();p.blk.splice(i,1);planSave(p);planSet();if(document.body.dataset.tab==='home')renderHome()}
+async function planAdd(){const v=await uiAsk({title:'Nuovo impegno fisso',inputs:[{label:'Nome (es. Riunione d\'area)',val:''},{label:'Giorno (lun, mar, mer, gio, ven)',val:'lun'},{label:'Dalle (es. 08:30)',val:'09:00'},{label:'Alle (es. 10:30)',val:'10:00'},{label:'Quando: «ogni settimana», «primo del mese» o «ultimo del mese»',val:'ogni settimana'}],ok:'Aggiungi'});if(!v)return;
+ const [t,g,s,e,r]=v,d=GGs.indexOf(String(g||'').trim().toLowerCase().slice(0,3));if(d<1||d>5)return alert('Giorno non valido: scrivi lun, mar, mer, gio o ven.');
+ if(!/^\d{1,2}[:.]\d{2}$/.test(String(s).trim())||!/^\d{1,2}[:.]\d{2}$/.test(String(e).trim())||hm2m(e)<=hm2m(s))return alert('Orari non validi: usa il formato 09:00 e la fine dopo l\'inizio.');
+ const rr=/prim/i.test(r)?'m1':/ultim/i.test(r)?'mL':'w',p=planCfg();p.blk.push({d,s:m2hm(hm2m(s)),e:m2hm(hm2m(e)),t:String(t||'Impegno').trim()||'Impegno',r:rr});planSave(p);planSet();if(document.body.dataset.tab==='home')renderHome()}
 async function propose(id){const o=lead(id)||db[id]||{};let busy=[],src='app';try{const b=await gBusy();if(b){busy=b;src='cal'}}catch(e){src='err'}
  const apps=Object.values(db).filter(d=>d.st==='app'&&d.when&&d.id!==id).map(d=>{const [h,m]=(d.whenT||'09:00').split(':').map(Number),t=pd(d.when);t.setHours(h,m,0,0);return{t:t.getTime(),d}});
  const C=[],min=Date.now()+2*3600e3;
  for(let k=0;k<8;k++){const day=new Date();day.setDate(day.getDate()+k);if(day.getDay()===0||day.getDay()===6)continue;
   for(let mm=9*60;mm<=18*60;mm+=30){if(mm>12*60+30&&mm<14*60)continue;const t=new Date(day);t.setHours(Math.floor(mm/60),mm%60,0,0);const a=t.getTime(),b=a+3600e3;if(a<min)continue;
-   if(busy.some(([x,y])=>x<b+45*6e4&&y>a-45*6e4))continue;let sc=-k*2,clash=false;
+   if(busy.some(([x,y])=>x<b+45*6e4&&y>a-45*6e4))continue;if(blkOn(t).some(x=>x.a<b+45*6e4&&x.b>a-45*6e4))continue;let sc=-k*2,clash=false;{const dk=dayKind(t);if(dk==='meet')sc+=8;else if(dk==='call')sc-=8}
    apps.forEach(({t:at,d})=>{const dd=Math.abs(at-a),same=new Date(at).toDateString()===t.toDateString(),km=o.lat!=null&&d.lat!=null?hav(o.lat,o.lng,d.lat,d.lng):null;
     const need=(60+(km==null?45:Math.min(90,15+km*2)))*6e4;if(dd<need)clash=true;else if(same&&km!=null&&km<=10&&dd<=3*3600e3)sc+=4;else if(same&&km!=null&&km>30&&dd<=4*3600e3)sc-=3});
    if(clash)continue;if(mm%60===0)sc+=.5;C.push({a,sc,k})}}
@@ -1557,7 +1619,7 @@ function sesOut(s){const id=SES.q[SES.i];if(!id)return;
  setSt(id,s,1);if(s==='no')askLoss(id,'call');sesNext()}
 function sesSaveDate(){const id=SES.q[SES.i],dv=$('sesd').value,tv=$('sest').value;if(!dv)return alert('Scegli la data.');
  if(!done(id)){const d=ensure(id);d.calls=(d.calls||0)+1;d.last=Date.now();(d.hist=d.hist||[]).push(Date.now())}
- setSt(id,SES.step,1);const d=ensure(id);d.when=dv;d.whenT=tv;if(SES.step==='app'&&SES.dec!=null)d.dec=SES.dec;SES.dec=null;save();render();SES.step=SES.step+'ok';sesRender()}
+ setSt(id,SES.step,1);const d=ensure(id);d.when=dv;d.whenT=tv;if(SES.step==='app'&&SES.dec!=null)d.dec=SES.dec;SES.dec=null;save();render();if(SES.step==='app')apDayHint(id);SES.step=SES.step+'ok';sesRender()}
 function sesRender(){const t=today(),all=Object.values(db),nc=all.reduce((n,d)=>n+(d.hist||[]).filter(x=>dstr(x)===t).length,0),na=all.filter(d=>d.st==='app'&&dstr(d.last||0)===t).length;
  const id=SES.q[SES.i],r=id&&lead(id),pc=(a,b)=>Math.min(100,Math.round(100*a/b));
  let h=`<div class="row"><b style="flex:1;font-size:18px">▶ Sessione di chiamate</b><button class="icon" onclick="sesStop()"><span class="ms">close</span></button></div>
@@ -1798,8 +1860,8 @@ function autoPanel(id,r,d){
  if(r&&ownSite(r)&&!d.azDate&&!AZT[id]&&['app','trat','int','cb','win'].includes(d.st)){AZT[id]=1;setTimeout(()=>{if(curId===id&&$('azres'))datiAz(id)},1500)}}
 const PT={};
 function ptab(k){if(curId)PT[curId]=k;document.querySelectorAll('#panel .psec').forEach(e=>e.hidden=e.dataset.s!==k);document.querySelectorAll('#panel .ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===k))}
-function setWhen(id,v){const d=ensure(id);d.when=v;save();render();apOk(id)}
-function setWhenT(id,v){const d=ensure(id);d.whenT=v;if(v&&!d.when)d.when=today();save();render();checkAlarms();apOk(id)}
+function setWhen(id,v){const d=ensure(id);d.when=v;save();render();apOk(id);apDayHint(id)}
+function setWhenT(id,v){const d=ensure(id);d.whenT=v;if(v&&!d.when)d.when=today();save();render();checkAlarms();apOk(id);apDayHint(id)}
 function setF(id,k,v){const d=ensure(id);d[k]=v.trim();save();render();
  if(k==='piva'&&d.piva&&!pivaOK(d.piva))alert('Attenzione: questa Partita IVA non supera il controllo di validità (11 cifre con cifra di controllo). Ricontrollala.')}
 // ===== Dati societari da fonti pubbliche gratuite =====
@@ -1865,7 +1927,8 @@ function azBox(d){
  `<div class="muted" style="margin-top:6px">${azLinks()}</div></div>`}
 const done=id=>{const d=db[id];return !!(d&&(d.st||d.calls))};
 function saveNotes(){const t=$('nt');if(t&&curId&&(t.value||(db[curId]&&db[curId].notes))){const d=ensure(curId);d.notes=t.value;save()}}
-function nrNext(n,dd){const now=new Date(),h=now.getHours();let d=new Date(now),t;
+function nrNext(n,dd){return planFix(nrNext0(n,dd))}
+function nrNext0(n,dd){const now=new Date(),h=now.getHours();let d=new Date(now),t;
  {const sx=dd?sectorOf(dd):null,O=bestSlot(sx?sx.c:'');if(O){const cur=slotNow();for(const i of O){if(i===cur)continue;const st=SLOTS[i][0];if(n===1&&st*60+30>=h*60+now.getMinutes()+60){t=String(st).padStart(2,'0')+':30';break}}
   if(!t){d.setDate(d.getDate()+1);t=String(SLOTS[O[0]===cur&&O[1]!=null?O[1]:O[0]][0]).padStart(2,'0')+':30'}while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return{d:dstr(d.getTime()),t,learned:1}}}
  if(n===1&&h<13){t='16:00'}else{d.setDate(d.getDate()+1);t=h<13?'15:00':'10:30'}
