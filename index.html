@@ -605,7 +605,8 @@ function rkGeo(r,kw){const lat=r.lat,lng=r.lng;
  const cap=Object.keys(CAPOLL).find(c=>new RegExp('\\b'+c+'$','i').test(kw)&&c!==(cityOf(r)||'').toLowerCase());
  if(cap)return{q:kw,area:'da '+cap[0].toUpperCase()+cap.slice(1),o:{locationBias:{center:{lat:CAPOLL[cap][0],lng:CAPOLL[cap][1]},radius:10000}}};
  return{q:kw,area:'',o:{locationBias:{center:{lat,lng},radius:10000}}}}
-function rkKws(r){const B=rkKws0(r),P=kpPick(r,B);return P}
+function rkCands(r){return kpPick(r,rkKws0(r),12)}
+function rkKws(r){const k=r&&RK[r.id];if(k&&k.L&&k.sel){const o=k.L.map(x=>x.kw);o.kp=k.kp||0;return o}const c=rkCands(r),o=c.slice(0,5);o.kp=Math.min(5,c.kp||0);return o}
 function rkKws0(r){const K=keywords(r),c=(cityOf(r)||'').toLowerCase(),core=K[0].replace(c?new RegExp('\\s*\\b'+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i'):/$^/,'').trim()||K[0];
  const kind=(r.kind||'').toLowerCase().trim(),cap=(CAPO[provOf(r)]||'').toLowerCase(),sx=sectorOf(r),q1=sx?sx.q.split(' ')[0]:'';
  const C=[...K,kind.length>=4&&!/^(azienda|negozio|servizio|attivit|impresa$|punto di interesse)/.test(kind)?(kind+(c?' '+c:'')):'',core+' vicino a me',cap&&cap!==c?core+' '+cap:'',q1&&c?q1+' '+c:'','miglior '+core+(c?' '+c:''),core+' prezzi'+(c?' '+c:'')];
@@ -620,7 +621,7 @@ function pnSave(){const K=Object.keys(PN),M=KV.ok?30000:5000;if(K.length>M)K.sli
 const proM=()=>{let o={};try{o=JSON.parse(localStorage.getItem('dw_pro')||'{}')}catch(e){}const m=today().slice(0,7);return o.m===m?o:{m,n:0}};
 const proOk=()=>proM().n<4500;
 function proUse(){const o=proM();o.n++;try{localStorage.setItem('dw_pro',JSON.stringify(o))}catch(e){}}
-async function rankCheck(id){const r=lead(id);if(!r||r.lat==null)return;const kws=rkKws(r);
+async function rankCheck(id){const r=lead(id);if(!r||r.lat==null)return;const kws=rkCands(r);
  RK[id]={run:1,kws};rkUpd(id);
  try{const {Place}=await google.maps.importLibrary('places');
   const loc={};Object.entries(PN).forEach(([k,n])=>loc[k]={n});Object.values(PC).concat(results,Object.values(db)).forEach(x=>{if(x&&x.id&&x.name)loc[x.id]={n:x.name,r:x.rating,c:x.n}});
@@ -629,12 +630,16 @@ async function rankCheck(id){const r=lead(id);if(!r||r.lat==null)return;const kw
    const ids=places.map(p=>p.id),pos=ids.indexOf(id)+1;
    return{kw,area:G.area,pos,n:ids.length,ids:ids.filter((x,i)=>i+1!==pos&&(!pos||i<pos)).slice(0,3)}}
    catch(e){return{kw,area:G.area,err:String(e.message||e).slice(0,80)}}}));
-  const ok=L.filter(x=>!x.err);
+  const vol=x=>{const q=kpGet(x.kw);return q?q.v:0};let ok0=L.filter(x=>!x.err);
+  const ord=ok0.map((x,i)=>[x,i]).sort((a,b)=>vol(b[0])-vol(a[0])||a[1]-b[1]).map(a=>a[0]),sel=[];let good=0;
+  ord.forEach(x=>{if(sel.length>=5)return;if(x.pos&&x.pos<=5){if(good<1){sel.push(x);good++}}else sel.push(x)});
+  ord.forEach(x=>{if(sel.length<5&&!sel.includes(x))sel.push(x)});
+  const ok=sel,nkp=sel.filter(x=>kpGet(x.kw)).length;
   if(ok.length){const unk=x=>x.ids.filter(k=>!loc[k]).length,w=ok.find(x=>!x.pos)||ok.slice().sort((a,b)=>b.pos-a.pos)[0],tg=unk(w)?w:ok.slice().sort((a,b)=>unk(b)-unk(a))[0];
    if(unk(tg)&&proOk()){try{proUse();const G=rkGeo(r,tg.kw);const {places}=await Place.searchByText(Object.assign({textQuery:G.q,fields:['id','displayName'],maxResultCount:20,language:'it'},G.o));
     places.forEach(p=>{PN[p.id]=p.displayName;if(!loc[p.id])loc[p.id]={n:p.displayName}});pnSave()}catch(e){}}
    ok.forEach(x=>{x.top=x.ids.map(k=>loc[k]||{n:'altro concorrente'});delete x.ids})}
-  RK[id]=ok.length?{t:Date.now(),L}:{t:Date.now(),err:L[0].err}}
+  RK[id]=ok.length?{t:Date.now(),L:sel,sel:1,kp:nkp,cands:kws.join('|'),checked:kws.length}:{t:Date.now(),err:L[0].err}}
  catch(e){RK[id]={t:Date.now(),err:String(e.message||e).slice(0,120)}}
  saveRK();rkUpd(id);render();if(SES.on&&SES.q[SES.i]===id&&!SES.step)sesRender()}
 // sintesi: in quante ricerche è nei primi 3, chi gli sta davanti più spesso, la ricerca peggiore da citare al telefono
@@ -647,8 +652,8 @@ function rkHook(id){const S=rkSum(id);if(!S)return'';const w=S.worst,t=(w.top||[
  const lead0=S.R.length>1?`Ho fatto ${S.R.length} ricerche che fanno i vostri clienti su Google Maps: siete nei primi 3 ${S.top3?'solo in '+S.top3:'in nessuna'}. `:'';
  const kv=kpGet(w.kw),vv=kv?` ci sono ${kv.lo!==kv.hi?'tra '+eur(kv.lo)+' e '+eur(kv.hi):eur(kv.v)} ricerche al mese e`:'';
  return '«'+lead0+(w.pos?`Per "${w.kw}"${vv} siete al ${w.pos}° posto${t?': prima di voi escono '+t:''}.»`:`Per "${w.kw}"${vv} non comparite nei primi ${w.n}${t?': escono '+t:''}.»`)}
-function rkBox(id){const r=lead(id),k=RK[id],rc=revCompare(r);let h=rkKws(r).kp?`<div class="muted" style="font-size:12px;margin-bottom:4px">🔑 Ricerche scelte da Keyword Planner: le ${rkKws(r).kp} più cercate per questo settore e zona</div>`:'';const kws=rkKws(r);
- if(!k)h=`<button class="btn g" onclick="rankCheck('${id}')">📍 Controlla la posizione su Google Maps</button> <span class="muted">(gratis: ${kws.map(esc).join(' · ')})</span>`;
+function rkBox(id){const r=lead(id),k=RK[id],rc=revCompare(r);let h=k&&k.sel&&k.kp?`<div class="muted" style="font-size:12px;margin-bottom:4px">🔑 Da Keyword Planner: su ${k.checked} ricerche controllate, le più cercate in cui è posizionato male (al massimo una entro il 5° posto)</div>`:rkKws(r).kp?`<div class="muted" style="font-size:12px;margin-bottom:4px">🔑 Ricerche da Keyword Planner per questo settore e zona</div>`:'';const kws=rkKws(r);
+ if(!k)h=`<button class="btn g" onclick="rankCheck('${id}')">📍 Controlla la posizione su Google Maps</button> <span class="muted">(gratis: ${rkCands(r).map(esc).join(' · ')})</span>`;
  else if(k.run)h='⏳ Cerco su Google Maps: '+(k.kws||[]).map(x=>'«'+esc(x)+'»').join(', ')+'…';
  else if(k.err)h=`⚠️ ${esc(k.err)} <button class="btn g" onclick="rankCheck('${id}')">↻ Riprova</button>`;
  else{const S=rkSum(id),pc=p=>p?`<b style="color:${p<=3?'#16a34a':p<=10?'#d97706':'#dc2626'}">${p}°</b>`:'<b style="color:#dc2626">assente</b>';
@@ -877,7 +882,7 @@ function renderHome(){const el=$('home');if(!el)return;const H=homeData(),h=new 
  <div class="hcard"><h3>Imbuto degli ultimi 30 giorni</h3>${H.fun.map(([l,v],i)=>`<div class="fun"><span>${l}</span><div class="bar"><i style="width:${Math.round(100*v/f0)}%;${i>=2?'background:#db2777':''}${i===4?';background:#065f46':''}"></i></div><b style="text-align:right">${v}${i?` <small class="muted">${H.fun[i-1][1]?Math.round(100*v/H.fun[i-1][1])+'%':''}</small>`:''}</b></div>`).join('')}
  <div class="muted" style="font-size:12px">La percentuale è la conversione dal passaggio precedente. Le risposte si contano dal momento in cui l'app ha iniziato a registrarle.</div></div>`}
 // ===== Versione e novità =====
-const APPV='3.5';
+const APPV='3.6';
 const NEWS=['Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
 function showNews(){$('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">✨ Novità della versione ${APPV}</b><button class="btn g" onclick="closeNc()">✕</button></div><div class="pad">${NEWS.map(x=>'<p style="margin:8px 0">• '+esc(x)+'</p>').join('')}</div>`;if($('nc').hidden){$('nc').hidden=false;pushSheet()}}
 setTimeout(()=>{try{const v=localStorage.getItem('dw_ver');if(v!==APPV){localStorage.setItem('dw_ver',APPV);if(v||Object.keys(db).length)toast('✨ App aggiornata alla versione '+APPV+': tocca per vedere le novità',showNews)}}catch(e){}},2500);
@@ -1046,7 +1051,7 @@ async function kpPasteUi(){const v=await uiAsk({title:'Incolla da Keyword Planne
 (async()=>{try{if(!/[?&]kp=1/.test(location.search)||!window.caches)return;const c=await caches.open('dw-share'),r=await c.match('./shared-kp');if(r){await kpFile(await r.blob());await c.delete('./shared-kp')}history.replaceState(null,'',location.pathname)}catch(e){}})();
 
 // le 5 ricerche più cercate tra quelle importate da Keyword Planner e pertinenti al cliente (settore + zona)
-function kpPick(r,base){const E=Object.entries(KPV);if(!E.length||!r)return base;
+function kpPick(r,base,N){N=N||5;const E=Object.entries(KPV);if(!E.length||!r)return base;
  const sx=sectorOf(r),c=fold(cityOf(r)||''),cap=fold(CAPO[provOf(r)]||''),others=Object.keys(CAPOLL).filter(x=>x!==cap&&x!==c);
  const stop=/^(vicino|miglior|migliore|prezzi|prezzo|costo|costi|urgente|zona|online|economico)$/,words=new Set();
  [...base,r.kind||'',sx?sx.q:'',...(sx&&sx.kw?sx.kw:[])].forEach(x=>kpN(String(x).replace('{c}','')).split(' ').forEach(w=>{if(w.length>=4&&w!==c&&w!==cap&&!stop.test(w))words.add(w.slice(0,6))}));
@@ -1054,8 +1059,8 @@ function kpPick(r,base){const E=Object.entries(KPV);if(!E.length||!r)return base
   return (sx&&sx.re.test(k))||k.split(' ').some(w=>w.length>=4&&words.has(w.slice(0,6)))});
  if(!rel.length)return base;rel.sort((a,b)=>b[1].v-a[1].v);
  const nk=x=>x.toLowerCase().split(' ').filter(w=>!/^(per|di|e|a|da|in|il|la|lo|le|gli|i|un|una|del|della|dei)$/.test(w)).join(' '),out=[];
- rel.forEach(([k])=>{if(out.length<5&&!out.some(y=>nk(y)===nk(k)))out.push(k)});const nkp=out.length;
- base.forEach(x=>{if(out.length<5&&!out.some(y=>nk(y)===nk(x)))out.push(x)});out.kp=nkp;return out}
+ rel.forEach(([k])=>{if(out.length<N&&!out.some(y=>nk(y)===nk(k)))out.push(k)});const nkp=out.length;
+ base.forEach(x=>{if(out.length<Math.max(5,nkp)&&!out.some(y=>nk(y)===nk(x)))out.push(x)});out.kp=nkp;return out}
 // ===== Scrematura: scarti certi (catene, enti, chiusi) e budget improbabile =====
 const CHAIN=/\b(mc ?donald'?s?|burger king|kfc|starbucks|autogrill|old wild west|roadhouse|la piadineria|rossopomodoro|spizzico|poke house|esselunga|carrefour|ipercoop|coop lombardia|lidl|eurospin|penny market|aldi|tigros|iperal|unes|despar|famila|bennet|md discount|decathlon|ikea|leroy merlin|bricoman|brico ?center|bricocenter|mediaworld|unieuro|euronics|trony|tecnocasa|tecnorete|tempocasa|gabetti|grimaldi immobiliare|remax|re\/max|engel ?& ?volkers|frimm|poste italiane|intesa sanpaolo|unicredit|bper|banco bpm|credem|credit agricole|mediolanum|fineco|deutsche bank|bnl|vodafone|windtre|wind tre|iliad|fastweb|zara|h ?& ?m|ovs|upim|primark|calzedonia|intimissimi|tezenis|yamamay|sephora|douglas|kiko|acqua ?& ?sapone|tigota|caddy'?s|pittarosso|foot ?locker|q8|enilive|eni station|esso|tamoil|mondo convenienza|poltronesofa|chateau d'?ax|maisons du monde|jysk|mail boxes etc|snai|sisal|lottomatica|dhl|bartolini|brt|gls)\b/;
 const PUBN=/\b(comune di|municipio|scuola (primaria|secondaria|dell'infanzia|statale|media|elementare|materna)|istituto comprensivo|liceo|istituto tecnico|istituto professionale|universita|ats|asst|ospedale|pronto soccorso|polizia|carabinieri|questura|prefettura|vigili del fuoco|caserma|parrocchia|chiesa|oratorio|diocesi|ufficio postale|biblioteca|cimitero|inps|inail|agenzia delle entrate|tribunale|croce rossa|croce verde|croce bianca|protezione civile)\b/;
@@ -1683,7 +1688,7 @@ function openPanel(id){
 // ===== Automatismi all'apertura della scheda: visibilità Maps (gratis), dati societari per i lead caldi =====
 const AZT={};
 function autoPanel(id,r,d){
- const k=RK[id],chg=k&&!k.run&&!k.err&&r&&rkRows(k).map(x=>x.kw).join('|')!==rkKws(r).join('|');if(r&&r.lat!=null&&(!k||chg||(!k.run&&(k.err||Date.now()-(k.t||0)>30*864e5))))setTimeout(()=>{if(curId===id&&!(RK[id]&&RK[id].run))rankCheck(id)},400);
+ const k=RK[id],chg=k&&!k.run&&!k.err&&r&&(k.cands||rkRows(k).map(x=>x.kw).join('|'))!==rkCands(r).join('|');if(r&&r.lat!=null&&(!k||chg||(!k.run&&(k.err||Date.now()-(k.t||0)>30*864e5))))setTimeout(()=>{if(curId===id&&!(RK[id]&&RK[id].run))rankCheck(id)},400);
  if($('propP'))propFill(id,'p');
  if(r&&ownSite(r)&&!d.azDate&&!AZT[id]&&['app','trat','int','cb','win'].includes(d.st)){AZT[id]=1;setTimeout(()=>{if(curId===id&&$('azres'))datiAz(id)},1500)}}
 const PT={};
