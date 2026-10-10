@@ -1028,11 +1028,12 @@ const kpGet=k=>KPV[kpN(k)]||null;
 const kpLab=x=>x?(x.lo!==x.hi?x.raw.replace(/\s+/g,' '):eur(x.v))+' ric./mese':'';
 function kpSum(id){const r=lead(id);if(!r)return 0;return rkKws(r).reduce((t,k)=>{const x=kpGet(k);return t+(x?x.v:0)},0)}
 async function kpOpen(id){const r=id?lead(id):null,kws=r?rkKws(r):[],txt=kws.join(', ');
- if(txt){try{await navigator.clipboard.writeText(txt)}catch(e){}}
+ if(txt){try{await navigator.clipboard.writeText(kws.join('\n'))}catch(e){}}
  $('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">🔑 Keyword Planner</b><button class="btn g" onclick="closeNc()">✕</button></div><div class="pad">
  ${txt?`<p><b>1.</b> Ho copiato le parole chiave di ${esc(r.name)}:<br><code style="font-size:12px">${esc(txt)}</code></p>`:'<p><b>1.</b> Prepara le parole chiave del settore e della zona.</p>'}
  <button class="btn" style="width:100%" onclick="window.open('https://ads.google.com/aw/keywordplanner/home','_blank')">Apri Keyword Planner</button>
- <p class="muted" style="margin:8px 0 12px">Lì: «Scopri nuove parole chiave» → incolla → scegli la località (es. ${esc(cityOf(r||{})||'il comune')}) → «Visualizza risultati».</p>
+ <p style="margin:8px 0 12px;font-size:14px">Google non permette alle app di compilare la sua pagina, quindi le parole sono già <b>copiate</b>: in Keyword Planner tocca <b>«Ottieni volume di ricerca e previsioni»</b> → tieni premuto nel campo → <b>Incolla</b> → «Inizia». Poi nella scheda <b>«Metriche storiche»</b> vedi le ricerche mensili. La località si cambia in alto (📍) con ${esc(cityOf(r||{})||'il comune')} o la provincia.</p>
+ ${txt?`<button class="btn g" style="width:100%;margin-bottom:12px" onclick="navigator.clipboard&&navigator.clipboard.writeText(${esc(JSON.stringify(kws.join('\n')))}).then(()=>toast('📋 Parole chiave copiate di nuovo'))">📋 Copia di nuovo le parole chiave</button>`:''}
  <p><b>2.</b> Riporta i volumi nell'app, in uno di questi modi:</p>
  <button class="btn g" style="width:100%;margin-bottom:8px" onclick="$('kpfile').click()">📄 Importa il file scaricato (.csv)</button>
  <button class="btn g" style="width:100%;margin-bottom:8px" onclick="kpPasteUi()">📋 Incolla la tabella copiata</button>
