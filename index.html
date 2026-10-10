@@ -213,7 +213,7 @@ body[data-tab="map"] #toast{bottom:calc(156px + env(safe-area-inset-bottom))}
    <div id="list"></div></div>
   <div class="view" id="v-sv">
    <div class="sticky">
-    <div class="searchbar" style="height:44px;background:var(--sc2)"><span class="ms">search</span><input type="text" id="sq" placeholder="Cerca nei salvati: nome o numero" autocomplete="off" oninput="renderSv()"><button class="icon" onclick="document.getElementById('sq').value='';renderSv()" title="Cancella"><span class="ms">close</span></button></div>
+    <div class="searchbar" style="height:44px;background:var(--sc2)"><span class="ms">search</span><input type="text" id="sq" placeholder="Cerca nei salvati: nome o numero" autocomplete="off" oninput="clearTimeout(window._st);window._st=setTimeout(renderSv,150)"><button class="icon" onclick="document.getElementById('sq').value='';renderSv()" title="Cancella"><span class="ms">close</span></button></div>
     <div class="sortrow"><span class="ms">sort</span><span class="muted">Ordina</span><select class="ordsel" id="sOrd" onchange="selF(this)" data-d="new"><option value="new" selected>🕒 Salvate di recente</option><option value="q">🏆 Migliori prima (A → C)</option><option value="sec">🎯 Settore più redditizio</option><option value="seo">📍 Più deboli su Maps</option><option value="dist">📍 Più vicine al centro della mappa</option><option value="az">🔤 Nome A–Z</option></select></div>
     <details class="flt" id="fS"><summary><span class="ms">filter_list</span><span id="fsS">Filtri</span><span class="ms">expand_more</span></summary><div class="fb">
      <div class="lbl">Scrematura</div>
@@ -239,7 +239,7 @@ body[data-tab="map"] #toast{bottom:calc(156px + env(safe-area-inset-bottom))}
    <div id="svl"></div></div>
   <div class="view" id="v-reg">
    <div class="sticky">
-    <div class="searchbar" style="height:44px;background:var(--sc2)"><span class="ms">search</span><input type="text" id="rq" placeholder="Cerca per nome o numero" autocomplete="off" oninput="renderReg()"><button class="icon" onclick="document.getElementById('rq').value='';renderReg()" title="Cancella"><span class="ms">close</span></button></div>
+    <div class="searchbar" style="height:44px;background:var(--sc2)"><span class="ms">search</span><input type="text" id="rq" placeholder="Cerca per nome o numero" autocomplete="off" oninput="clearTimeout(window._rt);window._rt=setTimeout(renderReg,150)"><button class="icon" onclick="document.getElementById('rq').value='';renderReg()" title="Cancella"><span class="ms">close</span></button></div>
     <div class="hs wrap"><select id="regSt" onchange="renderReg()" style="flex:1 0 150px;width:auto"></select><button class="chip" id="rTod" onclick="setRng('today')">Oggi</button><button class="chip on" id="rAll" onclick="setRng('all')">Totale</button><button class="btn g" id="csvb" onclick="exportCsv()">⬇ CSV</button></div>
     <div class="sortrow"><span class="ms">sort</span><span class="muted">Ordina</span><select class="ordsel" id="rOrd" onchange="selF(this)" data-d="auto"><option value="auto" selected>🕒 Ultima chiamata / data ricontatto</option><option value="q">🏆 Migliori prima (A → C)</option><option value="sec">🎯 Settore più redditizio</option><option value="dist">📍 Più vicine al centro della mappa</option><option value="az">🔤 Nome A–Z</option></select></div>
     <details class="flt" id="fR"><summary><span class="ms">filter_list</span><span id="frS">Filtri e periodo</span><span class="ms">expand_more</span></summary><div class="fb">
@@ -289,7 +289,7 @@ function lsPut(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function kvSave(k,get,lsKey){if(!KV.ok)return lsPut(lsKey,get());clearTimeout(KVT[k]);KVT[k]=setTimeout(()=>{const v=get();if(KV.ready)KV.set(k,v).catch(()=>lsPut(lsKey,v));else lsPut(lsKey,v)},400)}
 function freeLS(){['dw_sess','dw_snaps','dw_snap','dw_pc','dw_pn','dw_psi','dw_rk','dw_corrupt'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}})}
 // salvataggio con paracadute: se la memoria è piena libera le cache e riprova; in più copia speculare in IndexedDB
-function save(){const s=JSON.stringify(db);
+function save(){DBV++;MEMO.clear();const s=JSON.stringify(db);
  try{localStorage.setItem('dw_leads',s)}catch(e){freeLS();try{localStorage.setItem('dw_leads',s)}catch(e2){if(!window._lsw){window._lsw=1;alert('⚠ Memoria del telefono quasi piena. I dati restano in una copia interna, ma fai SUBITO un backup: Registro → «Backup su Drive».')}}}
  if(KV.ok){clearTimeout(KVT.leads);KVT.leads=setTimeout(()=>KV.set('leads',s).catch(()=>{}),800)}
  try{driveAuto()}catch(e){}}
@@ -373,7 +373,7 @@ const WIN={A:{t:'7:30–8:30 · 12:30–13:30 · 17:30–19:00',w:[[7.5,8.5],[12
  C:{t:'10:00–11:30 · 15:00–16:30',w:[[10,11.5],[15,16.5]],n:'negozi e showroom più tranquilli a metà mattina e primo pomeriggio'},
  D:{t:'10:00–11:30 · 15:00–17:00',w:[[10,11.5],[15,17]],n:'fuori dai servizi di pranzo/cena e dai check-in'},
  E:{t:'mar–gio 10:00–11:30 · 14:30–16:30',w:[[10,11.5],[14.5,16.5]],n:'evita sabato e lunedì'}};
-const sectorOf=r=>{const t=fold((r.kind||'')+' '+(r.q||''));return SEC.find(x=>x.re.test(t))};
+const SECC=new Map(),sectorOf=r=>{const k=(r.kind||'')+' '+(r.q||'');if(SECC.has(k))return SECC.get(k);const t=fold(k),v=SEC.find(x=>x.re.test(t));if(SECC.size>4000)SECC.clear();SECC.set(k,v);return v};
 const why=x=>[x.V>=4?'ticket alto':x.V<=2?'ticket basso':'',x.D>=4?'molta ricerca locale':x.D<=2?'poca ricerca locale':'',x.R>=4?'titolare raggiungibile':x.R<=2?'filtri/gatekeeper':'',x.M>=4?'già investe in lead/ads':x.M<=2?'poco abituato a investire':'',x.O>=4?'ostacoli: portali, micro-dimensione o regole':''].filter(Boolean).join(' · ')||'profilo medio';
 function winNow(W){const d=new Date(),day=d.getDay(),h=d.getHours()+d.getMinutes()/60;
  if(day===0||day===6)return '⛔ è weekend';
@@ -459,7 +459,7 @@ zoneOptions();
 function pickCat(){const v=$('cat').value;if(!v){$('catinfo').textContent='';$('catsum').textContent='ℹ️ Punteggio e orari del settore (tocca)';return}$('q').value=v;zoneOptions();const sx=SEC.find(x=>x.q===v);$('catinfo').textContent=sx?catInfo(sx)+' · '+winNow(WIN[sx.c]):'';if(sx)$('catsum').textContent='ℹ️ '+'★'.repeat(sx.st)+' '+sx.sc.toFixed(1)+' · '+(inWin(sx.c)?'🟢 in fascia ora':'🕒 '+shortW(sx.c))+' (tocca)';
  if(!map)return msg('Attendi il caricamento della mappa…');search()}
 function saveSess(){try{const c=map&&map.getCenter(),o={q:$('q').value,c:c?{lat:c.lat(),lng:c.lng()}:null,z:map&&map.getZoom()};if(!KV.ok)o.results=results;localStorage.setItem('dw_sess',JSON.stringify(o))}catch(e){}if(KV.ok&&KV.ready)kvSave('res',()=>results,'dw_sess_r')}
-const dstr=t=>{const x=new Date(t);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+const DSC=new Map(),dstr=t=>{if(typeof t==='object')return dstr0(t);let v=DSC.get(t);if(v!==undefined)return v;if(DSC.size>5000)DSC.clear();v=dstr0(t);DSC.set(t,v);return v},dstr0=t=>{const x=new Date(t);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
 const today=()=>dstr(Date.now());
 let rng='all',use=JSON.parse(localStorage.getItem('dw_use')||'{}');
 // contatore richieste a Google (conteggio locale, limite giornaliero impostabile)
@@ -489,7 +489,9 @@ function secStats(){const m={};
 function setRng(r){rng=r;$('rTod').classList.toggle('on',r==='today');$('rAll').classList.toggle('on',r==='all');renderReg()}
 function goReg(k){$('rq').value='';$('regSt').value=k;renderReg()}
 // ricerca nel registro: nome/titolare/note/indirizzo (senza accenti, più parole) oppure numero (anche parziale, con o senza +39)
-const fold=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+let DBV=0;const MEMO=new Map();setInterval(()=>MEMO.clear(),60000);
+const memo=(k,f)=>{if(MEMO.has(k))return MEMO.get(k);const v=f();MEMO.set(k,v);return v};
+const FOLDC=new Map(),fold=x=>{const s=String(x||'');let v=FOLDC.get(s);if(v===undefined){v=s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(FOLDC.size>8000)FOLDC.clear();FOLDC.set(s,v)}return v};
 const norm=n=>{n=String(n||'').replace(/\D/g,'');if(n.startsWith('0039'))n=n.slice(4);else if(n.startsWith('39')&&n.length>10)n=n.slice(2);return n};
 function matchQ(d,q){
  const qd=norm(q);
@@ -739,7 +741,8 @@ function nearSearch(id){const o=lead(id)||db[id];if(!o||o.lat==null)return;close
 // ===== Orario migliore imparato dalle tue chiamate (risposto / non risposto) =====
 function markAns(d,s){const h=d.hist||[],t=h[h.length-1];if(!t||Date.now()-t>3*3600e3)return;d.ca=d.ca||[];if(d.ca.length&&d.ca[d.ca.length-1][0]===t){d.ca[d.ca.length-1][1]=s==='nr'?0:1;return}d.ca.push([t,s==='nr'?0:1])}
 const SLOTS=[[8,10],[10,12],[12,14],[14,16],[16,18],[18,20]];
-function ansStats(cls){const B=SLOTS.map(()=>[0,0]);Object.values(db).forEach(d=>{if(!d.ca)return;if(cls){const sx=sectorOf(d);if(!sx||sx.c!==cls)return}
+function ansStats(cls){return memo('ans|'+cls,()=>ansStats0(cls)).map(b=>b.slice())}
+function ansStats0(cls){const B=SLOTS.map(()=>[0,0]);Object.values(db).forEach(d=>{if(!d.ca)return;if(cls){const sx=sectorOf(d);if(!sx||sx.c!==cls)return}
  d.ca.forEach(([t,a])=>{const dt=new Date(t),day=dt.getDay(),h=dt.getHours();if(day===0||day===6)return;const i=SLOTS.findIndex(([x,y])=>h>=x&&h<y);if(i>=0){B[i][0]++;B[i][1]+=a}})});return B}
 function ansLine(cls,min){const B=ansStats(cls),tot=B.reduce((t,b)=>t+b[0],0);if(tot<(min||8))return'';const best=B.map((b,i)=>[b[0]>=3?b[1]/b[0]:-1,i]).sort((a,b)=>b[0]-a[0])[0];
  return SLOTS.map(([x,y],i)=>B[i][0]?`<span style="${i===best[1]?'font-weight:700;color:#15803d':''}">${x}–${y}: ${Math.round(100*B[i][1]/B[i][0])}% <small class="muted">(${B[i][0]})</small></span>`:'').filter(Boolean).join(' · ')}
@@ -789,7 +792,7 @@ const roiBox=id=>{const o=roiGet(id),inp=(k,lab,val,ph,unit,note)=>`<label style
 
 // ===== Sessione intelligente: richiami scaduti prima, poi i lead migliori da chiamare ADESSO =====
 function slotNow(){const h=new Date().getHours();return SLOTS.findIndex(([x,y])=>h>=x&&h<y)}
-function smartScore(r){const W=[];let sc=qual(r).p;if(qual(r).g==='A')W.push('lead A');
+function smartScore(r){const W=[],Q=qual(r);let sc=Q.p;if(Q.g==='A')W.push('lead A');
  const sx=sectorOf(r);if(sx){sc+=sx.sc*0.8;if(inWin(sx.c)){sc+=3;W.push('orario giusto per il settore')}else sc-=1;if(inSeason(sx)){sc+=.5;W.push('in stagione')}
   const B=ansStats(sx.c),i=slotNow();if(i>=0&&B[i][0]>=5){const ra=B[i][1]/B[i][0];sc+=(ra-.4)*4;if(ra>=.5)W.push('a quest\'ora ti rispondono ('+Math.round(ra*100)+'%)')}}
  const o=openInfo(r);if(o){if(o.open){sc+=1}else{sc-=4;W.push('chiuso adesso')}}
@@ -800,13 +803,13 @@ function smartQueue(src){if(src==='sv'){const why={},P=(window._svList||[]).filt
 const t=today(),hm=new Date(Date.now()+15*6e4).toTimeString().slice(0,5),why={};
  const due=Object.values(db).filter(d=>isFU(d)&&d.phone&&d.when&&(d.when<t||(d.when===t&&(d.whenT||'00:00')<=hm))).sort((a,b)=>((a.when||'')+(a.whenT||'')).localeCompare((b.when||'')+(b.whenT||'')));
  due.forEach(d=>why[d.id]='🔁 richiamo '+(d.when<t?'scaduto':'previsto alle '+(d.whenT||'oggi')));
- const seen=new Set(due.map(d=>d.id)),pool=[];
+ const seen=new Set(due.map(d=>d.id)),pool=[],pk=r=>String(tel(r)||r.phone||'').replace(/\D/g,'').slice(-9),PS=new Set(due.map(pk).filter(Boolean));let dup=0;
  results.concat(Object.values(db).filter(d=>d.sv)).forEach(r=>{if(!r||seen.has(r.id)||!r.phone||done(r.id)||(db[r.id]&&db[r.id].junk))return;seen.add(r.id);
-  if(junkInfo(r).h.length||(AG[r.id]&&AG[r.id].dw)||dwOf(r))return;const x=smartScore(r);why[r.id]=x.why;pool.push([r,x.sc])});
- pool.sort((a,b)=>b[1]-a[1]);return{ids:due.map(d=>d.id).concat(pool.slice(0,60).map(x=>x[0].id)),why,nd:due.length}}
+  if(junkInfo(r).h.length||(AG[r.id]&&AG[r.id].dw)||dwOf(r))return;const ph=pk(r);if(ph){if(PS.has(ph)){dup++;return}PS.add(ph)}const x=smartScore(r);why[r.id]=x.why;pool.push([r,x.sc])});
+ pool.sort((a,b)=>b[1]-a[1]);return{ids:due.map(d=>d.id).concat(pool.slice(0,60).map(x=>x[0].id)),why,nd:due.length,dup}}
 function smartStart(src){if(src==='sv')renderSv();const Q=smartQueue(src);if(!Q.ids.length)return alert(src==='sv'?'Nessun salvato con telefono da chiamare (controlla i filtri dei Salvati).':'Niente da chiamare: fai una ricerca o salva qualche azienda.');
  SES.on=1;SES.q=Q.ids;SES.why=Q.why;SES.i=0;SES.called=null;SES.step='';$('ses').hidden=false;pushSheet();sesRender();
- toast('⚡ '+Q.ids.length+' chiamate in ordine di priorità'+(Q.nd?' ('+Q.nd+' richiami scaduti per primi)':''))}
+ toast('⚡ '+Q.ids.length+' chiamate in ordine di priorità'+(Q.nd?' ('+Q.nd+' richiami scaduti per primi)':'')+(Q.dup?' · '+Q.dup+' doppioni dello stesso numero saltati':''))}
 // ===== Richiami calibrati sulle fasce in cui ti rispondono =====
 function bestSlot(cls){let B=ansStats(cls);if(B.reduce((t,b)=>t+b[0],0)<15)B=ansStats('');if(B.reduce((t,b)=>t+b[0],0)<15)return null;
  return B.map((b,i)=>[b[0]>=3?b[1]/b[0]:-1,i]).filter(x=>x[0]>=0).sort((a,b)=>b[0]-a[0]).map(x=>x[1])}
@@ -877,7 +880,8 @@ function homeData(){const t=today(),all=Object.values(db),d30=Date.now()-30*864e
  const A=agenda0();
  // ultimi 7 giorni lavorativi
  const days=[];let x=new Date();while(days.length<7){if(x.getDay()%6)days.unshift(dstr(x.getTime()));x.setDate(x.getDate()-1)}
- const wk=days.map(k=>({k,c:all.reduce((n,d)=>n+(d.hist||[]).filter(h=>dayK(h)===k).length,0),a:all.filter(d=>d.taken===k&&(d.st==='app'||d.st==='win'||d.rfx||d.ok2!=null)).length}));
+ const DS=new Set(days),HC={},AC={},t0=new Date(days[0]+'T00:00').getTime();all.forEach(d=>{(d.hist||[]).forEach(h=>{if(h<t0)return;const k=dayK(h);if(DS.has(k))HC[k]=(HC[k]||0)+1});if(d.taken&&DS.has(d.taken)&&(d.st==='app'||d.st==='win'||d.rfx||d.ok2!=null))AC[d.taken]=(AC[d.taken]||0)+1});
+ const wk=days.map(k=>({k,c:HC[k]||0,a:AC[k]||0}));
  // imbuto 30 giorni
  const c30=all.reduce((n,d)=>n+(d.hist||[]).filter(h=>h>=d30).length,0),r30=all.reduce((n,d)=>n+(d.ca||[]).filter(h=>h[0]>=d30&&h[1]).length,0),
   a30=all.filter(d=>d.taken&&pd(d.taken).getTime()>=d30).length,o30=all.filter(d=>d.taken&&pd(d.taken).getTime()>=d30&&d.ok2).length,w30=all.filter(d=>d.st==='win'&&d.wonAt&&pd(d.wonAt).getTime()>=d30).length;
@@ -896,14 +900,14 @@ function renderHome(){const el=$('home');if(!el)return;const H=homeData(),h=new 
  ${todo.length?`<div class="hcard"><h3>Da fare</h3>${todo.map(([n,l])=>`<div class="agi" onclick="openNc()"><b style="min-width:28px;font-size:18px">${n}</b><span style="flex:1">${l}</span><span class="ms" style="color:var(--onsv)">chevron_right</span></div>`).join('')}</div>`:''}
  <div class="hcard"><div class="row"><h3 style="flex:1">Agenda di oggi</h3><button class="btn g" style="margin-right:6px" onclick="openCal()">🗓 Calendar</button>${H.agenda.filter(d=>d.lat!=null).length>1?'<button class="btn g" onclick="homeRoute()">🚗 Giro</button>':''}</div>
  ${H.agenda.length?H.agenda.map(d=>`<div class="agi"><b style="width:50px;color:#0f766e">${esc(d.whenT||'–:–')}</b><div style="flex:1;min-width:0" onclick="openPanel('${d.id}')"><b>${esc(d.name)}</b> ${d.ok2?'<span class="tag" style="background:#16a34a">OK2</span>':'<span class="tag" style="background:#d97706">OK1</span>'}<br><small class="muted">${esc(cityOf(d)||d.addr||'')}</small></div>${d.lat!=null?`<a class="cbtn" href="https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}" target="_blank"><span class="ms">directions_car</span></a>`:''}${d.phone?`<a class="cbtn" href="tel:${tel(d)}"><span class="ms f">call</span></a>`:''}</div>`).join(''):'<p class="muted" style="margin:0">Nessun appuntamento oggi: è una giornata da telefono. Parti dalla sessione intelligente.</p>'}</div>
- ${insightHtml()?`<div class="hcard"><h3>🧠 Cosa funziona</h3>${insightHtml()}</div>`:''}
+ ${(IH=>IH?`<div class="hcard"><h3>🧠 Cosa funziona</h3>${IH}</div>`:'')(insightHtml())}
  <div class="hcard"><h3>Ultimi 7 giorni lavorativi</h3><svg viewBox="0 0 320 120" style="width:100%;height:auto" role="img" aria-label="Chiamate e appuntamenti per giorno">${H.wk.map((w,i)=>{const x=10+i*44,hc=Math.round(62*w.c/mx);return `<rect x="${x}" y="${92-hc}" width="26" height="${hc}" rx="5" fill="var(--pri)" opacity=".85"/>${w.a?`<circle cx="${x+13}" cy="${82-hc}" r="8" fill="#db2777"/><text x="${x+13}" y="${85.5-hc}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">${w.a}</text>`:''}<text x="${x+13}" y="${88-hc-(w.a?18:2)}" font-size="10" text-anchor="middle" fill="currentColor">${w.c||''}</text><text x="${x+13}" y="112" font-size="10" text-anchor="middle" fill="currentColor" opacity=".7">${['D','L','M','M','G','V','S'][pd(w.k).getDay()]} ${pd(w.k).getDate()}</text>`}).join('')}</svg>
  <div class="muted" style="font-size:12px">Barre = chiamate · cerchio rosa = appuntamenti fissati quel giorno</div></div>
  <div class="hcard"><h3>Imbuto degli ultimi 30 giorni</h3>${H.fun.map(([l,v],i)=>`<div class="fun"><span>${l}</span><div class="bar"><i style="width:${Math.round(100*v/f0)}%;${i>=2?'background:#db2777':''}${i===4?';background:#065f46':''}"></i></div><b style="text-align:right">${v}${i?` <small class="muted">${H.fun[i-1][1]?Math.round(100*v/H.fun[i-1][1])+'%':''}</small>`:''}</b></div>`).join('')}
  <div class="muted" style="font-size:12px">La percentuale è la conversione dal passaggio precedente. Le risposte si contano dal momento in cui l'app ha iniziato a registrarle.</div></div>`}
 // ===== Versione e novità =====
-const APPV='4.8';
-const NEWS=['«↺ Resetta filtri» in Lista, Salvati, Registro e Mappa: compare appena cambi un filtro, una ricerca o il periodo, e anche quando un elenco resta vuoto per colpa dei filtri','Keyword Planner si apre direttamente in Chrome (non nell\'app Google Ads), con la guida da fare una volta sola per averlo sempre in versione desktop','Grafica rifinita: barra in alto senza sovrapposizioni, contatori come badge nella barra in basso, notifiche in coda una alla volta (con ✕ e «+N» se ce ne sono altre) che non coprono più i pulsanti della mappa','Legenda della mappa riducibile con un tocco · filtri del Registro che vanno a capo invece di uscire dallo schermo','Pianificazione della settimana: in Oggi vedi che giornata è (chiamate lun–mar, incontri mer–ven), le finestre libere per chiamare, le riunioni fisse e la settimana a colpo d\'occhio','Le proposte di orario per gli appuntamenti preferiscono mercoledì–venerdì ed evitano le riunioni (lunedì 8:30–10:30, primo lunedì del mese 9–13); i richiami automatici non cadono durante le riunioni','Avviso se fissi un incontro in un giorno di chiamate o sopra una riunione · tutto modificabile in Impostazioni → Pianificazione','Cosa funziona: segna l\'aggancio usato (con quello consigliato ⭐) e il motivo dei «no»; in Oggi e nel Registro vedi gli agganci che portano più appuntamenti e perché perdi le firme, con il consiglio pratico','Proposta del piano già pronta: il piano giusto per coprire le ricerche dove il cliente non compare, con frase e pareggio','Decisori presenti: domanda nello script, scelta quando fissi l\'appuntamento, avviso nella conferma T-1 e nella scheda rapida','WhatsApp già compilato per chi non risponde da 2 tentativi (promemoria, invio sempre manuale)','Scheda rapida per l\'incontro in PDF (uso interno): dati chiave, frasi pronte, visibilità, casi studio, obiezioni probabili, numeri e checklist','Casi studio: nella scheda → Incontro l\'app propone i 3 casi Diamondweb più adatti (stesso settore, specialità e zona) con la ricerca da mostrare dal vivo','Verifica dal vivo della posizione su Maps per ogni ricerca','Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
+const APPV='4.9';
+const NEWS=['App più veloce: la coda «⚡ Chiamate smart» si prepara in pochi millesimi invece di quasi mezzo secondo, Oggi, Registro e scheda azienda si aprono in circa metà tempo','Coda smart più pulita: se lo stesso numero compare due volte (doppione o azienda già nei richiami) lo chiami una volta sola','«↺ Resetta filtri» in Lista, Salvati, Registro e Mappa: compare appena cambi un filtro, una ricerca o il periodo, e anche quando un elenco resta vuoto per colpa dei filtri','Keyword Planner si apre direttamente in Chrome (non nell\'app Google Ads), con la guida da fare una volta sola per averlo sempre in versione desktop','Grafica rifinita: barra in alto senza sovrapposizioni, contatori come badge nella barra in basso, notifiche in coda una alla volta (con ✕ e «+N» se ce ne sono altre) che non coprono più i pulsanti della mappa','Legenda della mappa riducibile con un tocco · filtri del Registro che vanno a capo invece di uscire dallo schermo','Pianificazione della settimana: in Oggi vedi che giornata è (chiamate lun–mar, incontri mer–ven), le finestre libere per chiamare, le riunioni fisse e la settimana a colpo d\'occhio','Le proposte di orario per gli appuntamenti preferiscono mercoledì–venerdì ed evitano le riunioni (lunedì 8:30–10:30, primo lunedì del mese 9–13); i richiami automatici non cadono durante le riunioni','Avviso se fissi un incontro in un giorno di chiamate o sopra una riunione · tutto modificabile in Impostazioni → Pianificazione','Cosa funziona: segna l\'aggancio usato (con quello consigliato ⭐) e il motivo dei «no»; in Oggi e nel Registro vedi gli agganci che portano più appuntamenti e perché perdi le firme, con il consiglio pratico','Proposta del piano già pronta: il piano giusto per coprire le ricerche dove il cliente non compare, con frase e pareggio','Decisori presenti: domanda nello script, scelta quando fissi l\'appuntamento, avviso nella conferma T-1 e nella scheda rapida','WhatsApp già compilato per chi non risponde da 2 tentativi (promemoria, invio sempre manuale)','Scheda rapida per l\'incontro in PDF (uso interno): dati chiave, frasi pronte, visibilità, casi studio, obiezioni probabili, numeri e checklist','Casi studio: nella scheda → Incontro l\'app propone i 3 casi Diamondweb più adatti (stesso settore, specialità e zona) con la ricerca da mostrare dal vivo','Verifica dal vivo della posizione su Maps per ogni ricerca','Keyword Planner dall\'app: parole chiave già copiate, volumi importati con file, incolla o «Condividi → DW Leads»; i volumi compaiono in visibilità, aggancio, calcolatore e analisi PDF','Storico incontri: nel Registro scegli «🤝 Tutti gli incontri (anche esitati)»; ogni scheda mostra data ed esito di ogni appuntamento','Analisi della presenza online da mostrare al cliente e inviare in PDF su WhatsApp (scheda → Incontro)','Orari consigliati per l\'appuntamento, liberi nel tuo Google Calendar e vicini agli altri incontri','Backup automatico su Google Drive e ripristino anche dal computer (Impostazioni → Collega Google)','Scheda «Oggi»: obiettivi, agenda, cose da fare, andamento della settimana e imbuto dei risultati','Sessione intelligente anche nei Salvati','Impostazioni modificabili direttamente e finestre di conferma dell\'app al posto di quelle del browser','Dati più protetti: copia interna e archivio grande per le cache','Lista e mappa più veloci, marcatori raggruppati','Scheda cliente in 4 sezioni, gesti sulle righe, tema scuro'];
 function showNews(){$('ncb').innerHTML=`<div class="row" style="padding:0 12px"><b style="flex:1;font-size:18px">✨ Novità della versione ${APPV}</b><button class="btn g" onclick="closeNc()">✕</button></div><div class="pad">${NEWS.map(x=>'<p style="margin:8px 0">• '+esc(x)+'</p>').join('')}</div>`;if($('nc').hidden){$('nc').hidden=false;pushSheet()}}
 setTimeout(()=>{try{const v=localStorage.getItem('dw_ver');if(v!==APPV){localStorage.setItem('dw_ver',APPV);if(v||Object.keys(db).length)toast('✨ App aggiornata alla versione '+APPV+': tocca per vedere le novità',showNews)}}catch(e){}},2500);
 // ===== Registro errori per l'assistenza =====
@@ -1004,7 +1008,7 @@ function planCard(){const now=new Date(),k=dayKind(now),p=planCfg(),bl=blkOn(now
  // prossimo giorno lavorativo con impegni fissi
  const nd=new Date(now);nd.setDate(nd.getDate()+1);while(nd.getDay()%6===0)nd.setDate(nd.getDate()+1);const nb=blkOn(nd);
  if(nb.length)body+=`<p style="margin:8px 0 0">📌 <b>${(nd.getDate()-now.getDate()===1?'Domani':GGl[nd.getDay()][0].toUpperCase()+GGl[nd.getDay()].slice(1))}</b>: ${nb.map(b=>b.s+'–'+b.e+' '+esc(b.t)).join(' · ')}</p>`;
- const wk=weekDays().map(d=>{const kk=dayKind(d),key=dstr(d.getTime()),na=Object.values(db).filter(x=>x.st==='app'&&x.when===key).length,b=blkOn(d).length,isT=key===T;
+ const APW={};Object.values(db).forEach(x=>{if(x.st==='app'&&x.when)APW[x.when]=(APW[x.when]||0)+1});const wk=weekDays().map(d=>{const kk=dayKind(d),key=dstr(d.getTime()),na=(APW[key]||0),b=blkOn(d).length,isT=key===T;
   return `<div style="flex:1;min-width:0;text-align:center;padding:6px 2px;border-radius:12px;background:${isT?'var(--pri)':kk==='meet'?'#fce7f3':kk==='call'?'#e0f2fe':'transparent'};color:${isT?'#fff':'inherit'}"><small style="display:block;opacity:.8">${GGs[d.getDay()]} ${d.getDate()}</small><b style="font-size:15px">${kk==='call'?'📞':kk==='meet'?'🤝':'·'}${na?' '+na:''}</b>${b?'<small style="display:block">🏢</small>':''}</div>`}).join('');
  const mt=weekDays().filter(d=>dayKind(d)==='meet'&&dstr(d.getTime())>=T).reduce((n,d)=>n+Object.values(db).filter(x=>x.st==='app'&&x.when===dstr(d.getTime())).length,0);
  return `<div class="hcard"><div class="row"><h3 style="flex:1">${T1}</h3><button class="icon" onclick="planSet()" title="Pianificazione della settimana"><span class="ms">tune</span></button></div>${body}
@@ -1473,18 +1477,19 @@ const isPortal=r=>!!r.web&&PORTAL.test(r.web);
 const HVRE=/edil|serrament|infiss|fotovolt|climatizz|caldai|architett|geometr|ingegner|clinic|poliambulator|concessionar|carrozzer|dentist|fisioterap|veterinar|cantin|agriturism|notai|commercialist|avvocat|immobili|trasloc|hotel|palestr|autoscuol/;
 let CNT={};
 const nkey=r=>fold(r.name).replace(/[^a-z0-9]/g,'');
-function rebuildSedi(){CNT={};results.forEach(r=>{const k=nkey(r);CNT[k]=(CNT[k]||0)+1})}
+function rebuildSedi(){CNT={};MEMO.clear();results.forEach(r=>{const k=nkey(r);CNT[k]=(CNT[k]||0)+1})}
 const sedi=r=>CNT[nkey(r)]||1;
-function qual(r){let p=0;const w=[],sd=sedi(r);
- if(isSoc(r)){p+=2;w.push('società (+2)')}
+function qual(r){return r&&r.id?memo('q|'+r.id+'|'+(r.n||0),()=>qual0(r)):qual0(r)}
+function qual0(r){let p=0;const w=[],sd=sedi(r),SO=isSoc(r);
+ if(SO){p+=2;w.push('società (+2)')}
  if(sd>1){p+=2;w.push(sd+' sedi (+2)')}
  {const sx=sectorOf(r);if(sx){if(sx.st>=5){p+=2;w.push('settore ★★★★★ (+2)')}else if(sx.st===4){p+=1;w.push('settore ★★★★ (+1)')}else if(sx.st<=2){p-=1;w.push('settore a bassa resa (−1)')}}}
  if(r.n>=300){p+=2;w.push('molte recensioni (+2)')}else if(r.n>=100){p+=1;w.push('buon volume di recensioni (+1)')}else if(r.n!=null&&r.n<5){p-=1;w.push('pochissime recensioni (−1)')}
  {const dd=db[r.id]||{},cn=capN(dd);
   if(cn>=100000){p+=2;w.push('capitale sociale ≥ 100.000 € (+2)')}else if(cn>=20000){p+=1;w.push('capitale sociale ≥ 20.000 € (+1)')}
-  if(/^[A-Z]{6}/.test(dd.cf||'')&&!isSoc(r)){p-=1;w.push('ditta individuale / professionista (−1)')}}
+  if(/^[A-Z]{6}/.test(dd.cf||'')&&!SO){p-=1;w.push('ditta individuale / professionista (−1)')}}
  if(isPortal(r)){p-=2;w.push('già su portale a commissione (−2)')}
- if(!r.web&&!isSoc(r)){p-=1;w.push('micro-attività senza sito (−1)')}
+ if(!r.web&&!SO){p-=1;w.push('micro-attività senza sito (−1)')}
  return{p,w,g:p>=4?'A':p>=2?'B':'C'}}
 const qcol=g=>g==='A'?'#16a34a':g==='B'?'#d97706':'#9ca3af';
 function angle(r,q){return isPortal(r)?'paga commissioni a un portale: proponi sito con contatto/prenotazione diretta e SEO locale per ridurre la dipendenza.'
@@ -1507,7 +1512,7 @@ function row(r,reg){const k=keywords(r),s=seo(r),dd=db[r.id]||{},dn=done(r.id),s
 const MARK=()=>({new:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#facc15',fillOpacity:1,strokeWeight:4},
  sv:{path:'M0,-12 L12,0 L0,12 L-12,0 Z',scale:1,fillColor:'#9333ea',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},
  cl:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillOpacity:1,strokeColor:'#fff',strokeWeight:2}});
-function render(){
+function render(){MEMO.clear();
  const vis=visible(),lq=($('lq').value||'').trim();
  $('cCb').textContent='🔁 Da ricontattare ('+Object.values(db).filter(isFU).length+')';
  navLbl('cnt','Lista',vis.length);fltSum('list');
@@ -2054,9 +2059,9 @@ function ncApp(d,kind){return `<div class="item" onclick="closeNc();openPanel('$
  ${kind==='nrwa'?`<button class="cbtn" style="border:0" title="Apri WhatsApp con il messaggio pronto" onclick="event.stopPropagation();waMsg('${d.id}','nr')">💬</button>`:kind==='esit'?`<button class="sbtn" style="border-color:#16a34a" title="Firmato" onclick="event.stopPropagation();meetOut('${d.id}','win')">✅</button><button class="sbtn" title="Da seguire" onclick="event.stopPropagation();meetOut('${d.id}','fu')">📌</button><button class="sbtn" title="Non interessato" onclick="event.stopPropagation();meetOut('${d.id}','no')">❌</button>`:kind==='post'?`<button class="cbtn" style="border:0" onclick="event.stopPropagation();waMsg('${d.id}','post')">💬</button>`:kind==='conf'?`${d.phone?`<a class="cbtn" href="tel:${tel(d)}" onclick="event.stopPropagation()"><span class="ms f">call</span></a>`:''}<button class="sbtn" style="border-color:#16a34a;font-size:12px;font-weight:700" title="Il cliente ha confermato" onclick="event.stopPropagation();toggleOk2('${d.id}')">OK2</button>`:`<button class="cbtn" style="border:0" onclick="event.stopPropagation();waMsg('${d.id}','t0')">💬</button>`}</div>`}
 function closeNc(fromPop){$('nc').hidden=true;if(!fromPop)popSheet()}
 const TQ=[];let TCUR=null;
-function toast(t,fn){t=String(t);if((TCUR&&TCUR.t===t)||TQ.some(x=>x.t===t))return;TQ.push({t,fn:fn||null});if(!TCUR)return toastNext();const el=$('toast'),q=el.querySelector('.tq');if(q)q.textContent='+'+TQ.length;else{const b=el.querySelector('.tc');if(b)b.insertAdjacentHTML('beforebegin','<span class="tq">+'+TQ.length+'</span>')}clearTimeout(window._tt);window._tt=setTimeout(toastNext,6000)}
+function toast(t,fn){t=String(t);if((TCUR&&TCUR.t===t)||TQ.some(x=>x.t===t))return;TQ.push({t,fn:fn||null});if(!TCUR)return toastNext();const el=$('toast');if(!el||!el.querySelector)return;const q=el.querySelector('.tq');if(q)q.textContent='+'+TQ.length;else{const b=el.querySelector('.tc');if(b)b.insertAdjacentHTML('beforebegin','<span class="tq">+'+TQ.length+'</span>')}clearTimeout(window._tt);window._tt=setTimeout(toastNext,6000)}
 function toastNext(){const el=$('toast');clearTimeout(window._tt);TCUR=TQ.shift()||null;if(!TCUR){el.hidden=true;return}
- el._fn=TCUR.fn;el.innerHTML='<span class="tx"></span>'+(TQ.length?'<span class="tq">+'+TQ.length+'</span>':'')+'<button class="tc" aria-label="Chiudi" title="Chiudi">✕</button>';el.querySelector('.tx').textContent=TCUR.t;el.hidden=false;
+ el._fn=TCUR.fn;el.innerHTML='<span class="tx"></span>'+(TQ.length?'<span class="tq">+'+TQ.length+'</span>':'')+'<button class="tc" aria-label="Chiudi" title="Chiudi">✕</button>';{const tx=el.querySelector&&el.querySelector('.tx');if(tx)tx.textContent=TCUR.t;else el.textContent=TCUR.t}el.hidden=false;
  window._tt=setTimeout(toastNext,TQ.length?6000:12000)}
 function toastTap(e){const el=$('toast'),cur=TCUR;if(e&&e.target&&e.target.closest&&e.target.closest('.tc')){e.stopPropagation();return toastNext()}toastNext();try{((cur&&cur.fn)||openNc)()}catch(err){}}
 function checkAlarms(){
