@@ -1,16 +1,19 @@
-// Service worker: le pagine si scaricano SEMPRE fresche dalla rete (niente copie vecchie);
-// la copia salvata serve solo per aprire l'app quando manca il campo.
-const C='dw-app-v3';
-self.addEventListener('install',()=>self.skipWaiting());
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(K=>Promise.all(K.filter(k=>k!==C&&k!=='dw-share').map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{const q=e.request,u=new URL(q.url);
- // file condiviso da un'altra app (es. CSV di Keyword Planner) → lo passo all'app
- if(q.method==='POST'&&u.pathname.endsWith('/share-kp')){e.respondWith((async()=>{try{const f=await q.formData(),file=f.get('file'),txt=f.get('text');const c=await caches.open('dw-share');
-  await c.put('./shared-kp',file&&file.size?new Response(file):new Response(txt||''))}catch(_){}return Response.redirect('./index.html?kp=1',303)})());return}
- if(q.method!=='GET'||u.origin!==self.location.origin)return;
- const page=q.mode==='navigate'||/\.html$|\/$/.test(u.pathname);
- e.respondWith(fetch(q,page?{cache:'no-store'}:{}).then(r=>{
-   // salva solo pagine vere dell'app (mai il README o pagine d'errore)
-   if(r&&r.ok&&(!page||/\/(index|calcolatore)\.html$|\/$/.test(u.pathname))){const c=r.clone();c.text&&page?c.text().then(t=>{if(/Diamondweb/.test(t))caches.open(C).then(x=>x.put(q,new Response(t,{headers:{'Content-Type':'text/html; charset=utf-8'}})))}):caches.open(C).then(x=>x.put(q,c))}
-   return r})
-  .catch(()=>caches.match(q,{ignoreSearch:true}).then(r=>r||caches.match('./index.html'))))});
+// Diamondweb Leads · service worker
+// 1) l'app si apre anche senza rete: con la rete prende sempre la versione più aggiornata di index.html, senza rete usa l'ultima copia salvata
+// 2) «Condividi → DW Leads»: riceve il file di Keyword Planner e lo passa all'app (index.html?kp=1)
+// I dati restano nel telefono come sempre: qui si salvano solo l'app, i font e il file condiviso.
+const C='dw-shell-v2',KEEP=[C,'dw-share'];
+self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(['./index.html'])).catch(()=>{}))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(K=>Promise.all(K.filter(k=>!KEEP.includes(k)).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);
+ if(r.method==='POST'&&u.origin===self.location.origin&&/\/share-kp$/.test(u.pathname)){
+  e.respondWith((async()=>{try{const f=await r.formData(),file=f.get('file'),tx=f.get('text')||f.get('title')||'',c=await caches.open('dw-share');
+   if(file&&file.size)await c.put('./shared-kp',new Response(file));else if(tx)await c.put('./shared-kp',new Response(new Blob([tx],{type:'text/plain'})))}catch(err){}
+   return Response.redirect(new URL('./index.html?kp=1',self.registration.scope).href,303)})());return}
+ if(r.method!=='GET')return;
+ if(u.origin===self.location.origin){const nav=r.mode==='navigate'||/\/(index\.html)?$/.test(u.pathname),key='./index.html';
+  const net=nav?fetch(u.origin+u.pathname,{cache:'no-cache',credentials:'same-origin'}):fetch(r);
+  e.respondWith(net.then(res=>{if(res&&res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(nav?key:r,cp)).catch(()=>{})}return res})
+   .catch(()=>caches.match(nav?key:r,{ignoreSearch:true}).then(m=>m||caches.match(key)).then(m=>m||Response.error())));return}
+ if(/(^|\.)fonts\.(googleapis|gstatic)\.com$/.test(u.hostname))e.respondWith(caches.match(r).then(m=>m||fetch(r).then(res=>{const cp=res.clone();caches.open(C).then(c=>c.put(r,cp)).catch(()=>{});return res})));
+});
